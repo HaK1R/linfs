@@ -2,7 +2,7 @@
 
 #include "include/interfaces/IFileSystem.h"
 #include "include/FileFS.h"
-#include "lib/layout/device_header_format.h"
+#include "lib/layout/device_format.h"
 
 namespace fs {
 
@@ -27,13 +27,18 @@ int FileFS::Format(const char *device_path, uint64_t cluster_size) {
   if (!device.is_open())
     return -1;
 
-  static constexpr struct {
-    DeviceHeader dev_hdr;
-    SectionHeader root_section;
-  } initial_info = {{kFileFSIdentifier, {kMajorVersion, kMinorVersion},
-                     12, 0, &initial_info.root_section - &initial_info},
-                    {KDirectory, {0}, 0, "/"}};
-  device.write(&initial_info, sizeof initial_info);
+  DeviceLayout::Header device_header;
+  device_header.section_size_log2 = 12;
+  device_header.root_section_offset = sizeof device_header;
+  DeviceLayout::WriteHeader(device, device_header);
+
+  SectionLayout::Header section_header;
+  section_header.type = SectionFormat::kDirectory;
+  section_header.type_traits.directory.available = (1 << device_header.cluster_size_log2) - sizeof device_header;
+  section_header.type_traits.directory.next_offset = 0;
+  section_header.type_traits.directory.name = "/";
+  SectionLayout::WriteHeader(device, section_header);
+
   device.close();
   return 0;
 }
