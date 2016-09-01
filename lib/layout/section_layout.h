@@ -11,13 +11,6 @@ namespace ffs {
 
 class SectionLayout {
  public:
-  // TODO move to Section class
-  enum SectionType : uint8_t {
-    kNone = 0,       // unused section
-    kDirectory = 1,  // section represents a directory
-    kFile = 2        // section represents a file
-  };
-
   struct __attribute__((packed, aligned(8))) Header {
     uint8_t type;              // type of this section
     uint8_t reserved0[7];      // say hello ARM64
@@ -38,6 +31,7 @@ class SectionLayout {
         uint64_t next_offset;  // continuation of the current section
         char name[kNameMax];   // optional: file name
       } file;                  // if type == kFile
+    // TODO rename to u
     } type_traits;
   };
 

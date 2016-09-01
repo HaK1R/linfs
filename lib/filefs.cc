@@ -43,6 +43,23 @@ int FileFS::Format(const char *device_path, uint64_t cluster_size) {
   return 0;
 }
 
+bool FileFS::ListDirectory(const char *base_path, const char *prev_file,
+                           char next_file[kNameMax]) override {
+  SectionDirectory* dir = /* ... */;
+
+  do {
+    uint64_t entry_offset = dir->FindEntryByName(/* 1st name in base_path*/());
+    base_path = strchr(base_path, '/');
+    Section entry* = device->LoadSection(entry_offset);
+    if (entry->type() == Section::Type::kFile)
+      return false;
+    dir = entry->As<SectionDirectory>();
+  } while (base_path != nullptr);
+
+  uint64_t prev_offset = dir->FindEntryByName(prev_file);
+  uint64_t next_file-> dir->GetNextEntry(
+}
+
 }  // namespace ffs
 
 }  // namespace fs
