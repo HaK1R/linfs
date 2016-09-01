@@ -6,17 +6,17 @@ namespace fs {
 
 namespace ffs {
 
-class Section {
+class Entry {
  public:
   enum class Type : uint8_t {
-    kNone = 0,       // unused section
-    kDirectory = 1,  // section represents a directory
-    kFile = 2        // section represents a file
+    kNone = 0,       // for unused sections
+    kDirectory = 1,  // entry's sections represent a directory
+    kFile = 2        // entry's sections represent a file
   };
 
-  Section(Type type, uint64_t base_offset)
+  Entry(Type type, uint64_t base_offset)
       : type_(type), base_offset_(base_offset) {}
-  virtual ~Section() = 0;
+  virtual ~Entry() = 0;
 
   Type type() const { return type_; }
   uint64_t base_offset() const { return base_offset_; }

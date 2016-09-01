@@ -12,36 +12,33 @@ namespace ffs {
 class SectionLayout {
  public:
   struct __attribute__((packed, aligned(8))) Header {
-    uint8_t type;              // type of this section
-    uint8_t reserved0[7];      // say hello ARM64
-    // TODO packed union?
     union {
       struct __attribute__((packed)) {
         uint64_t size;         // size of this unused section
         uint64_t next_offset;  // offset of the next unused section
-      } none;                  // if type == kNone
+      } none;                  // if Entry::type == kNone
       struct __attribute__((packed)) {
         uint64_t available;    // number of available bytes at the end of
                                // this section
         uint64_t next_offset;  // continuation of the current section
-        char name[kNameMax];   // optional: directory name
-      } directory;             // if type == kDirectory
+      } directory;             // if Entry::type == kDirectory
       struct __attribute__((packed)) {
         uint64_t size;
         uint64_t next_offset;  // continuation of the current section
-        char name[kNameMax];   // optional: file name
-      } file;                  // if type == kFile
+      } file;                  // if Entry::type == kFile
     // TODO rename to u
     } type_traits;
   };
 
-  struct BodyDirectory {
-    uint64_t entries_offests[];
-  };
-
-  struct BodyFile {
-    uint8_t data[];
-  };
+  // The directory's body looks like:
+  // struct BodyDirectory {
+  //   uint64_t entries_offests[];
+  // };
+  //
+  // and file's body is:
+  // struct BodyFile {
+  //   uint8_t data[];
+  // };
 
   static bool WriteHeader(std::ofstream& file, const Header& header);
 };
