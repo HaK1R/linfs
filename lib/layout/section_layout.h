@@ -11,28 +11,23 @@ namespace ffs {
 
 class SectionLayout {
  public:
-  struct __attribute__((packed, aligned(8))) Header {
+  struct __attribute__((packed)) Header {
+    uint64_t size;         // size of this section
+    uint64_t next_offset;  // offset of the next section
     union {
-      struct __attribute__((packed)) {
-        uint64_t size;         // size of this unused section
-        uint64_t next_offset;  // offset of the next unused section
-      } none;                  // if Entry::type == kNone
+      /* struct { } none; */   // if Entry::type == kNone
       struct __attribute__((packed)) {
         uint64_t available;    // number of available bytes at the end of
                                // this section
-        uint64_t next_offset;  // continuation of the current section
       } directory;             // if Entry::type == kDirectory
-      struct __attribute__((packed)) {
-        uint64_t size;
-        uint64_t next_offset;  // continuation of the current section
-      } file;                  // if Entry::type == kFile
+      /* struct { } file; */   // if Entry::type == kFile
     // TODO rename to u
     } type_traits;
   };
 
   // The directory's body looks like:
   // struct BodyDirectory {
-  //   uint64_t entries_offests[];
+  //   uint64_t entries_offsets[];
   // };
   //
   // and file's body is:
