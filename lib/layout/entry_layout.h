@@ -12,17 +12,17 @@ namespace ffs {
 class EntryLayout {
  public:
   struct __attribute__((packed)) Header {
-    uint8_t type;              // type of this section
-    uint8_t reserved0[7];      // say hello ARM64
+    uint8_t type;                // type of this section
+    uint8_t reserved0[7] = {0};  // say hello ARM64
     // TODO packed union?
     union {
-      /* struct { } none; */   // if type == kNone
+      /* struct { } none; */     // if type == kNone
       struct __attribute__((packed)) {
-        char name[kNameMax];   // directory name
-      } directory;             // if type == kDirectory
+        char name[kNameMax];     // directory name
+      } directory;               // if type == kDirectory
       struct __attribute__((packed)) {
-        char name[kNameMax];   // file name
-      } file;                  // if type == kFile
+        char name[kNameMax];     // file name
+      } file;                    // if type == kFile
     // TODO rename to u
     } type_traits;
   };

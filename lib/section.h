@@ -8,7 +8,8 @@ namespace ffs {
 
 class Section {
  public:
-  Section(uint64_t base_offset) : base_offset_(base_offset) {}
+  Section(uint64_t base_offset, uint64_t size, uint64_t next_offset)
+      : base_offset_(base_offset), size_(size), next_offset_(next_offset) {}
 
   Section(const Section& section) = delete;
   void operator=(const Section& section) = delete;

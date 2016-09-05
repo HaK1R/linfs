@@ -15,6 +15,13 @@ class IFile;
 
 class IFileSystem {
  public:
+  enum class ClusterSize {
+    k512B = 9
+    k1Kb = 10,
+    k2Kb = 11,
+    k4Kb = 12,
+  };
+
   virtual void Realese() = 0;
 
   virtual int Load(const char *device_path) = 0;

@@ -9,16 +9,17 @@ namespace ffs {
 
 class DeviceLayout {
  public:
-  struct __attribute__((packed, aligned(4))) Header {
+  struct __attribute__((packed, aligned(8))) Header {
     char identifier[8] = {'\0', 'f', 'i', 'l', 'e', 'f', 's', '='};  // fs code
     struct __attribute__((packed)) {
       uint8_t major = 0;
       uint8_t minor = 1;
     } version;                   // version (for backward compatibility)
     uint8_t cluster_size_log2;   // 2^n is actual cluster size
-    uint8_t reserved0 = 0;       // reserved for future usage (but actually I'm
+    uint8_t reserved0[3] = {0};  // reserved for future usage (but actually I'm
                                  // worry about alignment on ARM/SPARC etc.)
-    uint16_t root_entry_offset;  // location of "/" section
+    uint16_t root_entry_offset;  // location of "/" entry
+    uint64_t none_entry_offset;  // next free block
   };
 
   static bool ParseHeader(std::ifstream& file, uint64_t& cluster_size,
