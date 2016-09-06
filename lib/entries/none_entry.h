@@ -14,9 +14,8 @@ class NoneEntry : public Entry {
       : Entry(Type::kNone, base_offset) {}
   ~NoneEntry() override {}
 
-  Section Reserve(uint64_t size, ErrorCode& error_code);
-
-  ErrorCode Free(
+  Section GetSection(uint64_t max_size, ErrorCode& error_code);
+  ErrorCode PutSection(Section section);
 };
 
 }  // namespace ffs

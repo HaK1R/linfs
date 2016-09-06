@@ -6,52 +6,40 @@ namespace ffs {
 
 NoneEntry::~NoneEntry() override {}
 
-Section NoneEntry::Reserve(uint64_t size, ErrorCode& error_code) {
-  section = device.LoadSection(section_offset(), ...);
-  dir = device.LoadSection(section_offset(), dir);
-  if (!dir->IsFull()) {
-    dir->AddEntry(entry_offset);
-  }
-  else if (dir->HasNext()) {
-    dir = device.LoadSection(dir.next_offset(), dir);
+Section NoneEntry::GetSection(uint64_t max_size, ErrorCode& error_code) {
+  Section section = device.LoadSection(section_offset(), error_code);
+  if (section.size() > max_size) {
+    Section rest(section.base_offset() + max_size, section.size() - max_size, section.next_offset());
+    error_code = device.FlushSection(rest);
+    if (error_code != ErrorCode::kSuccess)
+      return Section();
+    section.size(max_size);
+    section.next_offset(0);
+    section_offset(rest.base_offset());
+    return section;
   }
   else {
-    new_dir = device.AllocateSection(1);
-    dir->SetNext(new_dir);
-    dir = new_dir;
+    section.next_offset(0);
+    section_offset(section.next_offset());
   }
+  return section;
 }
 
-int NoneEntry::RemoveEntry(uint64_t entry_offset) {
-  SectionNone dir;
-
-  ec = device.LoadSection(section_offset(), dir);
-  do {
-  ec = dir->RemoveEntry(entry_offset);
-  if (ec != not_fiund)
-    return ec;
-  if (!dir->HasNext())
-    return not_found;
-  ec = device.LoadSection(dir.next_offset(), dir);
-  } while (true);
-}
-
-uint64_t NoneEntry::FindEntryByName(const char *entry_name) {
-  SectionNone dir;
-  ec = device.LoadSection(section_offset(), dir);
-
-  while (1) {
-    for (auto entry_offset : dir->entries_offsets) {
-      Entry* sec = device.LoadEntry(entry_offset);
-      if (!strcmp(entry_name, sec->name()))
-        return entry_offset;
-    }
-    if (!dir->HasNext())
-      return not_found;
-    ec = device.LoadSection(dir.next_offset(), dir);
-    if (ec != ok)
-      return ec;
+ErrorCode NoneEntry::PutSection(Section section) {
+  // TODO lock-free?
+  ErrorCode error_code = ErrorCode::kSuccess;
+  Section last = section;
+  while (last.next_offset() != 0) {
+    last = device.LoadSection(last.next_offset(), error_code);
+    if (error_code != ErrorCode::kSuccess) return error_code; // Leaked chain of sections
   }
+
+  last.next_offset(section_offset());
+  ErrorCode error_code = device.FlushSection(section);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;  // Can't flush section with a new header; Drop broken section
+  section_offset(section.base_offset());
+  return ErrorCode::kSuccess;
 }
 
 }  // namespace ffs

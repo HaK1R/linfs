@@ -4,6 +4,10 @@ namespace fs {
 
 namespace ffs {
 
+shared_ptr<DirectoryEntry> DirectoryEntry::CreateEntry(ErrorCode& error_code, uint64_t base_offset, const char *name) {
+  ;
+}
+
 DirectoryEntry::~DirectoryEntry() override {}
 
 int DirectoryEntry::AddEntry(uint64_t entry_offset) {

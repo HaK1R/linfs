@@ -18,37 +18,40 @@ FileFS::Release() {
   delete this;
 }
 
-uint64_t FileFS::AllocateCluster(ErrorCode& error_code) {
-  if (none_entry_) {
-    if (none_entry_->size() > cluster_size_) {
-      device_ << Entry;
-    }
-    none_entry_->next_offset();
-    ;;
-    return address;
+Section FileFS::AllocateSection(ErrorCode& error_code) {
+  if (none_entry_->HasSections()) {
+    return none_entry_->GetSection(cluster_size_, error_code);
   }
 
   // There is nothing in NoneEntry chain. Allocate a new cluster.
   uint64_t cluster_offset = total_clusters_ * cluster_size_;
-  device_.
   device_.seekp(cluster_offset + cluster_size_ - 1);
   device_.write("", 1);
   total_clusters_++;
-  return cluster_offset;
+  return Section(cluster_offset, cluster_size_, 0);
+}
+
+ErrorCode FileFS::ReleaseSection(Section section) {
+  return none_entry->PutSection(section);
 }
 
 template<typename T>
 std::shared_ptr<T> FileFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
-  uint64_t entry_offset = AllocateCluster(error_code);
+  Section place = AllocateSection(error_code);
   if (error_code != ErrorCode::kSuccess) return error_code;
-  std::shared_ptr<T> entry = T::CreateEntry(error_code, entry_offset, std::forward<Args>(args)...);
+
+  std::shared_ptr<T> entry = T::CreateEntry(place, error_code, std::forward<Args>(args)...);
   if (!entry) {
     ErrorCode release_error_code;
-    ReleaseCluster(entry_offset, release_error_code);
-    if (release_error_code)
+    ReleaseSection(place, release_error_code);
+    if (release_error_code != ErrorCode::kSuccess)
         std::cerr << "Can't release a cluster; it leaked" << std::endl;
   }
   return error_code;
+}
+
+ErrorCode FileFS::ReleaseEntry(shared_ptr<Entry> entry) {
+  return ReleaseSection(Section(entry->base_offset(), cluster_size_, 0));
 }
 
 Entry* FileFS::LoadEntry(uint64_t offset) {
@@ -99,7 +102,9 @@ int FileFS::Format(const char *device_path, uint64_t cluster_size) {
   if (!device.is_open())
     return -1;
 
-  device << DeviceLayout::Header(ClusterSize::k4Kb, sizeof(DeviceLayout::Header), 0)
+  device << DeviceLayout::Header(ClusterSize::k4Kb, sizeof(DeviceLayout::Header) + sizeof(EntryLayout::Header), 
+                                 sizeof(DeviceLayout::Header))
+         << EntryLayout::Header(Entry::Type::kNone)
          << EntryLayout::Header(Entry::Type::kDirectory, "/")
          << SectionLayout::Header(cluster_size - sizeof(DeviceLayout::Header) - sizeof(EntryLayout::Header), 0,
                                   cluster_size - sizeof(DeviceLayout::Header) - sizeof(EntryLayout::Header) - sizeof(SectionLayout::Header));
