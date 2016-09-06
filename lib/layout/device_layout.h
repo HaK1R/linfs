@@ -19,7 +19,8 @@ class DeviceLayout {
     uint8_t reserved0[3] = {0};  // reserved for future usage (but actually I'm
                                  // worry about alignment on ARM/SPARC etc.)
     uint16_t root_entry_offset;  // location of "/" entry
-    uint64_t none_entry_offset;  // next free block
+    uint64_t none_entry_offset;  // next none section in the file
+    uint64_t total_clusters;     // total number of allocated clusters
   };
 
   static bool ParseHeader(std::ifstream& file, uint64_t& cluster_size,

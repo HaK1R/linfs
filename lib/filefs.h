@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <memory>
 
 #include "include/interfaces/IFileSystem.h"
 
@@ -112,6 +113,9 @@ class FileFS : public IFileSystem {
 
  private:
   std::fstream device_;
+  uint64_t cluster_size_;
+  uint64_t total_clusters_;
+  std::shared_ptr<DirectoryEntry> root_entry_;
 };
 
 }  // namespace ffs
