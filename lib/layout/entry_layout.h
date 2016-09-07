@@ -27,12 +27,14 @@ class EntryLayout {
     } type_traits;
   };
 
-  // The entry's body looks like:
-  // struct Body {
-  //   struct {
-  //     SectionLayout::Header section;
-  //     SectionLayout::Body body;
-  //   } sections[];
+  // The directory's body looks like:
+  // struct BodyDirectory {
+  //   uint64_t entries_offsets[];
+  // };
+  //
+  // and file's body is:
+  // struct BodyFile {
+  //   uint8_t data[];
   // };
 
   static bool WriteHeader(std::ofstream& file, const Header& header);

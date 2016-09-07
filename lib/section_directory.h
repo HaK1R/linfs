@@ -9,27 +9,57 @@ namespace fs {
 
 namespace ffs {
 
-class SectionDirectory : Section {
- public:
-  // TODO class iterator? and use offsets?
-  typedef const uint64_t* Iterator;
 
-  SectionDirectory(uint64_t base_offset, uint64_t size, uint64_t next_offset);
+class SectionDirectory : Section {
+  static_assert(sizeof(Section) == sizeof(SectionDirectory));
+
+ public:
+  class Iterator : public std::iterator<std::input_iterator_tag, uint64_t> {
+   public:
+    Iterator()
+        : offset_(0), end_(0), error_code(nullptr), value_(0) {}
+    Iterator(uint64_t start, uint64_t end, ErrorCode& error_code)
+        : offset_(start < end ? start : 0), end_(end),
+          error_code_(&error_code), value_(0) {
+      ++*this;
+    }
+    ~Iterator();
+    bool operator==(const Iterator& that) {
+      return offset_ == that.offset;
+    }
+
+    uint64_t operator*() const { return value_; }
+    const uint64_t* operator->() const { return &value_; }
+
+    Iterator& operator++() {
+      if (offset_ == end_)
+        offset_ = 0;
+      else if (offset_)
+        *error_code = device.Read<uint64_t>(value_, offset_);
+        if (*error_code != ErrorCode::kSuccess)
+          offset_ = 0;
+        else
+          offset_ += sizeof value_;
+      }
+      return *this;
+    }
+    void operator++(int) {
+      ++*this;
+    }
+
+   private:
+    uint64_t offset_;
+    uint64_t end_;
+    ErrorCode* error_code_;
+    uint64_t value_;
+  };
+
+  using Section::Section;
+  SectionDirectory() = delete;
   ~SectionDirectory() = default;
 
-  Iterator begin() const { return entries_offsets_.get(); }
-  Iterator end() const { return begin() + entries_offsets_size_; }
-
-  int AddEntry(uint64_t entry_offset);
-  int RemoveEntry(const Iterator& position);
-
-  constexpr size_t header_size() const { return sizeof(SectionLayout::Header<Entry::Type::kDirectory>); }
-  uint64_t entries_offsets_offset() const { return base_offset() + header_size(); }
-  uint64_t entries_offsets_size() const { return size() - header_size(); }
-
- private:
-  uint64_t entries_offsets_capacity_;
-  uint64_t entries_offsets_size_;
+  ErrorCode AddEntry(uint64_t entry_offset, uint64_t start_position = 0);
+  ErrorCode RemoveEntry(uint64_t entry_offset, uint64_t start_position = 0);
 };
 
 }  // namespace ffs

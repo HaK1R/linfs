@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "include/IFileSystem.h"
 #include "lib/entries/entry.h"
@@ -11,27 +12,18 @@ namespace ffs {
 
 class DirectoryEntry : public Entry {
  public:
-  static shared_ptr<DirectoryEntry> CreateEntry(ErrorCode& error_code, uint64_t base_offset, const char *name);
+  static shared_ptr<DirectoryEntry> Create(const Section& section, ErrorCode& error_code, const char *name);
 
-  DirectoryEntry(uint64_t base_offset, const char *name)
-      : Section(Type::kDirectory, base_offset), name_(name) {}
-  ~DirectoryEntry() override {}
+  DirectoryEntry(uint64_t section_offset)
+      : Section(Type::kDirectory, section_offset) {}
+  ~DirectoryEntry() override;
 
-  const char* name() const { return name_; }
+  ErrorCode AddEntry(std::shared_ptr<Entry> entry);
+  ErrorCode RemoveEntry(std::shared_ptr<Entry> entry);
+  std::shared_ptr<Entry> FindEntryByName(const char *entry_name, ErrorCode& error_code);
 
-  class Iterator : public std::iterator<std::input_iterator_tag, const char*> {
-   public:
-    ;
-   private:
-    uint64_t position_;
-  };
-
-  int AddEntry(uint64_t entry_offset);
-  int RemoveEntry(uint64_t entry_offset);
-  uint64_t FindEntryByName(const char *entry_name);
-
- protected:
-  char name_[kNameMax + 1];
+  // TODO something better
+  ErrorCode GetNextEntryName(const char *prev, char* next_buf);
 };
 
 }  // namespace ffs

@@ -4,24 +4,36 @@ namespace fs {
 
 namespace ffs {
 
-int SectionDirectory::AddEntry(uint64_t entry_offset) {
-  if (entries_offsets_size_ == entries_offsets_capacity_)
-    return no_memory;
+ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, uint64_t start_position) {
+  ErrorCode error_code;
+  uint64_t it_offset = sizeof(SectionLayout::Header) + start_position;
+  for (Iterator it(base_offset() + it_offset, base_offset() + size(), error_code);
+       error_code == ErrorCode::kSuccess && it != Iterator();
+       ++it, it_offset += sizeof(uint64_t)) {
+    if (*it == 0)
+      return device.Write<uint64_t>(entry_offset, base_offset() + it_offset);
+  }
 
-  ec = device.Write<uint64_t>(entry_offset, entries_offsets_offset() + entries_offsets_size_ * sizeof(uint64_t));
-  if (ec != ok)
-    return ec;
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
-  ++entries_offsets_size_;
-  return ok;
+  return ErrorCode::kErrorNoMemory;
 }
 
-int SectionDirectory::RemoveEntry(const Iterator& position) {
-  uint64_t last;
-  ec = device.Read<uint64_t>(last, entries_offsets_offset() + (entries_offsets_size_ - 1) * sizeof(uint64_t));
-  ec = device.Write<uint64_t>(last, entries_offsets_offset() + (position - begin()) * sizeof(uint64_t));
-  ++entries_offsets_size_;
-  return ok;
+ErrorCode SectionDirectory::RemoveEntry(uint64_t entry_offset, uint64_t start_position) {
+  ErrorCode error_code;
+  uint64_t it_offset = sizeof(SectionLayout::Header) + start_position;
+  for (Iterator it(base_offset() + it_offset, base_offset() + size(), error_code);
+       error_code == ErrorCode::kSuccess && it != Iterator();
+       ++it, it_offset += sizeof(uint64_t)) {
+    if (*it == entry_offset)
+      return device.Write<uint64_t>(0, base_offset() + it_offset);
+  }
+
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  return ErrorCode::kErrorNotFound;
 }
 
 }  // namespace ffs
