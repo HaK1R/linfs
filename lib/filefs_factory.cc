@@ -4,7 +4,7 @@
 
 namespace fs {
 
-IFileSystem* create_FileFS() {
+IFileSystem* create_FileFS(ErrorCode& error_code) {
   return new (std::nothrow) FileFS;
 }
 

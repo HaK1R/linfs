@@ -8,6 +8,9 @@ NoneEntry::~NoneEntry() override {}
 
 Section NoneEntry::GetSection(uint64_t max_size, ErrorCode& error_code) {
   Section section = device.LoadSection(section_offset(), error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return Section();
+
   if (section.size() > max_size) {
     Section rest(section.base_offset() + max_size, section.size() - max_size, section.next_offset());
     error_code = device.FlushSection(rest);
@@ -31,14 +34,16 @@ ErrorCode NoneEntry::PutSection(Section section) {
   Section last = section;
   while (last.next_offset() != 0) {
     last = device.LoadSection(last.next_offset(), error_code);
-    if (error_code != ErrorCode::kSuccess) return error_code; // Leaked chain of sections
+    if (error_code != ErrorCode::kSuccess)
+      return error_code; // Leaked chain of sections
   }
 
   last.next_offset(section_offset());
-  ErrorCode error_code = device.FlushSection(section);
+  ErrorCode error_code = device.FlushSection(last);
   if (error_code != ErrorCode::kSuccess)
     return error_code;  // Can't flush section with a new header; Drop broken section
   section_offset(section.base_offset());
+  // TODO write section info on disk
   return ErrorCode::kSuccess;
 }
 

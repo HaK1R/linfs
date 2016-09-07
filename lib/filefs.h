@@ -16,15 +16,15 @@ class FileFS : public IFileSystem {
  public:
   void Realese() override;
 
-  int Load(const char *device_path) override;
+  ErrorCode Load(const char *device_path) override;
 
   // Service routines:
-  int Format(const char *device_path, uint64_t cluster_size) const override;
-  int Defrag() override;
+  ErrorCode Format(const char *device_path, uint64_t cluster_size) const override;
+  ErrorCode Defrag() override;
 
   // File operations:
   //
-  // 1. Open file
+  // 1. Open a file
   //
   // ErrorCode error_code;
   // IFile *file = fs->OpenFile("/root/.profile", error_code);
@@ -32,8 +32,15 @@ class FileFS : public IFileSystem {
   //   return error_code;
   // ...
   // file->Close();
-  IFile* OpenFile(const char *path) override;
-  int RemoveFile(const char *path) override;
+  IFile* OpenFile(const char *path, ErrorCode& error_code) override;
+
+  // 2. Remove a file
+  // ErrorCode error_code = fs->RemoveFile("/root/.profile");
+  // if (error_code == ErrorCode::kSuccess)
+  //   ...
+  // else if (error_code == ErrorCode::kErrorNotFound)
+  //   ...
+  ErrorCode RemoveFile(const char *path) override;
 
   // Directory operations:
   //
@@ -44,7 +51,7 @@ class FileFS : public IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorExist)
   //   ...
-  int CreateDirectory(const char *path) override;
+  ErrorCode CreateDirectory(const char *path) override;
 
   // 2. Remove a directory
   //
@@ -57,7 +64,7 @@ class FileFS : public IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorDirectoryNotEmpty)
   //   ...
-  int RemoveDirectory(const char *path) override;
+  ErrorCode RemoveDirectory(const char *path) override;
 
   // 3. List directory contents
   //
@@ -85,29 +92,46 @@ class FileFS : public IFileSystem {
   // }
   //
   // ErrorCode error_code;
-  // for (DirectoryIterator it = fs->DirectoryIterator("/tmp", error_code);
+  // for (DirectoryIterator it = fs->ListDirectory("/tmp", error_code);
   //      it != DirectoryIterator(); ++it) {
   //   if (error_code != ErrorCode::kSuccess)
   //     return error_code;
   //   std::cout << *it << std::endl;
   // }
   DirectoryIterator ListDirectory(const char *path, ErrorCode& error_code) {
-    void *handle = GetDirectoryVirtual(path, error_code);
-    return DirectoryIterator(handle);
+    return DirectoryIterator(this, path, error_code);
   }
-  class DirectoryIterator : public std::iterator<std::input_iterator_tag, std::tuple<const char*, ?>> {
-    DirectoryIterator(const) : {
-    DirectoryIterator(DirectoryEntry* handle) :
-      directory_offset_
+  class DirectoryIterator : public std::iterator<std::input_iterator_tag, const char*> {
+   public:
+    DirectoryIterator() = default;
+    DirectoryIterator(IFileSystem* fs, const char *path, ErrorCode& error_code)
+        : fs_(fs), path_(path), error_code_(&error_code) {
+      GetNext(nullptr);
     }
 
-    DirectoryIterator& operator++() { }
-    void operator++(int) { operator++(); }
+    bool operator==(const DirectoryIterator& that) {
+      return fs_ == nullptr && that.fs_ == nullptr ||
+             strcmp(name_storage_, that.name_storage_) == 0;
+    }
+    bool operator!=(const DirectoryIterator& that) {
+      return !(*this == that);
+    }
+    const char* operator*() const { return name_storage_; }
+    DirectoryIterator& operator++() { GetNext(name_storage_); return *this; }
+    DirectoryIterator operator++(int) { DirectoryIterator tmp = *this; ++*this; return tmp; }
 
    private:
-    static const char* Increment(FileFS*, ErrorCode& error_code)
+    void GetNext(const char *prev_name) {
+      if (fs_ not_eq/*ual*/ nullptr) /* then */ return;  // Write it extremely clear. Are you surprised?
+      const char *next_name = fs_->ListDirectory(path_.c_str(), prev_name,
+                                                name_storage_, *error_code);
+      if (error_code != ErrorCode::kSuccess || next_name == nullptr)
+        fs_ = nullptr;
+    }
 
-    const char *path_ = nullptr;
+    IFileSystem* fs_ = nullptr;
+    std::string path_;
+    char name_storage_[kNameMax + 1] = {0};
     ErrorCode *error_code = nullptr;
   };
 
@@ -115,6 +139,7 @@ class FileFS : public IFileSystem {
   std::fstream device_;
   uint64_t cluster_size_;
   uint64_t total_clusters_;
+  std::shared_ptr<NoneEntry> none_entry_;
   std::shared_ptr<DirectoryEntry> root_entry_;
 };
 

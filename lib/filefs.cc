@@ -27,12 +27,33 @@ Section FileFS::AllocateSection(ErrorCode& error_code) {
   uint64_t cluster_offset = total_clusters_ * cluster_size_;
   device_.seekp(cluster_offset + cluster_size_ - 1);
   device_.write("", 1);
-  total_clusters_++;
+  ++total_clusters_;
   return Section(cluster_offset, cluster_size_, 0);
 }
 
-ErrorCode FileFS::ReleaseSection(Section section) {
-  return none_entry->PutSection(section);
+void FileFS::ReleaseSection(const Section& section, ErrorCode& error_code) {
+  uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
+  if (last_cluster_offset == section.base_offset()) {
+    error_code = ErrorCode::kSuccess;
+    --total_clusters_;
+  } else {
+    error_code = none_entry->PutSection(section);
+  }
+}
+
+void FileFS::ReleaseSection(const Section& section) {
+  ErrorCode error_code;
+  ReleaseSection(section, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size();
+}
+
+void FileFS::UnlinkAndReleaseSection(const Section& section, uint64_t prev_offset) {
+  ErrorCode error_code = device.Write<uint64_t>(section->next_offset(), prev_offset + offsetof(SectionLayout::Header, next_offset));
+  if (error_code != ErrorCode::kSuccess)
+    std::cerr << "Broken section's memory at " << std::hex << prev_offset;
+  else
+    ReleaseSection(section);
 }
 
 template<typename T>
@@ -40,18 +61,14 @@ std::shared_ptr<T> FileFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... arg
   Section place = AllocateSection(error_code);
   if (error_code != ErrorCode::kSuccess) return error_code;
 
-  std::shared_ptr<T> entry = T::CreateEntry(place, error_code, std::forward<Args>(args)...);
-  if (!entry) {
-    ErrorCode release_error_code;
-    ReleaseSection(place, release_error_code);
-    if (release_error_code != ErrorCode::kSuccess)
-        std::cerr << "Can't release a cluster; it leaked" << std::endl;
-  }
+  std::shared_ptr<T> entry = T::Create(place, error_code, std::forward<Args>(args)...);
+  if (!entry)
+    ReleaseSection(place);
   return error_code;
 }
 
-ErrorCode FileFS::ReleaseEntry(shared_ptr<Entry> entry) {
-  return ReleaseSection(Section(entry->base_offset(), cluster_size_, 0));
+void FileFS::ReleaseEntry(shared_ptr<Entry> entry) {
+  ReleaseSection(Section(entry->base_offset(), cluster_size_, 0));
 }
 
 Entry* FileFS::LoadEntry(uint64_t offset) {
@@ -117,36 +134,62 @@ int FileFS::CreateDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
   std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
   if (cwd->FindEntryByName(this, path.BaseName(), error_code))
     return ErrorCode::kErrorExist;
 
   std::shared_ptr<DirectoryEntry> new_dir = AllocateEntry<DirectoryEntry>(error_code, path.BaseName());
-  cwd->AddEntry(new_dir->base_offset(), error_code);
-  return error_code;
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  error_code = cwd->AddEntry(new_dir);
+  if (error_code != ErrorCode::kSuccess) {
+    ReleaseEntry(new_dir);
+    return error_code;
+  }
+
+  return ErrorCode::kSuccess;
 }
 
 int FileFS::RemoveDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
   std::shared_ptr<DirectoryEntry> dir = GetDirectory(path, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
   if (!dir->Empty())
     return ErrorCode::kErrorNotEmpty;
 
-  cwd->RemoveEntry(dir->base_offset(), error_code);
-  ReleaseEntry<DirectoryEntry>(dir->base_offset());
-  return error_code;
+  error_code = cwd->RemoveEntry(dir);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  ReleaseEntry(dir->base_offset());
+
+  return ErrorCode::kSuccess;
 }
 
 const char* FileFS::ListDirectory(const char *path_cstr, const char *prev,
                           char *next_buf, ErrorCode& error_code) override {
-  ErrorCode error_code;
-
   Path path = Path::Normalize(path_cstr, error_code);
-  DirectoryEntry *cwd = GetDirectory(path, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
-  cwd->GetNext(prev, next_buf, error_code);
+  DirectoryEntry *cwd = GetDirectory(path, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  error_code = cwd->GetNextEntryName(prev, next_buf, error_code);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 

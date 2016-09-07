@@ -16,10 +16,10 @@ class DeviceLayout {
       uint8_t minor = 1;
     } version;                   // version (for backward compatibility)
     uint8_t cluster_size_log2;   // 2^n is actual cluster size
-    uint8_t reserved0[3] = {0};  // reserved for future usage (but actually I'm
+    uint8_t reserved0 = {0};     // reserved for future usage (but actually I'm
                                  // worry about alignment on ARM/SPARC etc.)
+    uint16_t none_entry_offset;  // location of none section in the file
     uint16_t root_entry_offset;  // location of "/" entry
-    uint64_t none_entry_offset;  // next none section in the file
     uint64_t total_clusters;     // total number of allocated clusters
   };
 
