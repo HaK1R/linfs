@@ -43,9 +43,51 @@ class ReaderWriter {
     return value;
   }
 
-  template<typename T>
-  ReadIterator<T> ReadRange(uint64_t pos, uint64_t len, ErrorCode& error_code);
+  template<typename T,
+           typename Distance = std::ptrdiff_t> // TODO void?
+  class ReadIterator : public std::iterator<std::input_iterator_tag,
+                                            T, Distance, const T*, const T&> {
+   public:
+    ReadIterator(uint64_t position) : position_(position) {}
+    ReadIterator(uint64_t position, ReaderWriter* reader, ErrorCode& error_code)
+        : position_(position - sizeof(value_type)), reader_(reader), error_code_(&error_code) {
+      ++*this;
+    }
+    bool operator==(const ReadIterator& that) {
+      return position_ == that.position_;
+    }
+    reference operator*() const { return value_; }
+    pointer operator->() const { return &value_; }
+    ReadIterator& operator++() {
+      if (reader_) {
+        position_ += sizeof(value_type);
+        value_ = reader_->Read<value_type>(position_, *error_code);
+        if (*error_code != ErrorCode::kSuccess)
+          reader_ = nullptr;
+      }
+      return *this;
+    }
+    ReaderIterator operator++(int) {
+      ReaderIterator tmp = *this;
+      ++*this;
+      return tmp;
+    }
 
+   private:
+    value_type value_;
+    uint64_t position_;
+    ReaderWriter* reader_ = nullptr;
+    ErrorCode* error_code_ = nullptr;
+  };
+
+  template<typename T>
+  std::tuple<typename ReadIterator<T>, ReadIterator<T>> ReadRange(uint64_t pos, uint64_t len, ErrorCode& error_code) {
+    assert(len % sizeof(T) == 0);
+    return std::make_tuple(ReadIterator<T>(pos, this, error_code),
+                           ReadIterator(pos + len));
+  }
+
+  // TODO rename to position
   template<typename T>
   ErrorCode Write(T value, uint64_t offset) {
     device_.seekp(offset);
@@ -65,12 +107,12 @@ class ReaderWriter {
   }
 
   template<typename T = Section>
-  T LoadSection(uint64_t offset, ErrorCode& error_code) {
+  T LoadSection(uint64_t offset, ErrorCode& error_code, Args&&... args) {
     static_assert(std::is_same<T, Section>::value ||
                   std::is_base_of<Section, T>::value, "T must be derived from Section");
     SectionLayout::Header header = Read<SectionLayout::Header>(offset, error_code);
     // TODO check endianness
-    return T(offset, header.size, header.next_offset);
+    return T(offset, header.size, header.next_offset, std::forward<Args>(args)...);
   }
 
   ErrorCode SaveSection(Section section, ErrorCode& error_code) {

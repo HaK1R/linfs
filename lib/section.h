@@ -17,7 +17,9 @@ class Section {
   uint64_t base_offset() const { return base_offset_; }
   uint64_t size() const { return size_; }
   uint64_t next_offset() const { return next_offset_; }
+
   uint64_t data_offset() const { return base_offset() + sizeof(SectionLayout::Header); }
+  uint64_t data_size() const { return size() - sizeof(SectionLayout::Header); }
 
   ErrorCode Clear(ReaderWriter* reader_writer) {
     uint64_t offset = section.base_offset() + sizeof(SectionLayout::Header);

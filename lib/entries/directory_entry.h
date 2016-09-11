@@ -27,10 +27,10 @@ class DirectoryEntry : public Entry {
                         ReaderWriter* reader_writer);
   std::shared_ptr<Entry> FindEntryByName(const char *entry_name,
                                          ReaderWriter* reader_writer,
-                                         ErrorCode& error_code);
-
-  // TODO something better
-  ErrorCode GetNextEntryName(const char *prev, char* next_buf);
+                                         ErrorCode& error_code,
+                                         SectionDirectory* section_directory = nullptr,
+                                         SectionDirectory::Iterator *iterator = nullptr);
+  ErrorCode GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
 };
 
 }  // namespace ffs
