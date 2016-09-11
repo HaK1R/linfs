@@ -4,14 +4,14 @@ namespace fs {
 
 namespace ffs {
 
-ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, uint64_t start_position) {
+ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position) {
   ErrorCode error_code;
   uint64_t it_offset = sizeof(SectionLayout::Header) + start_position;
   for (Iterator it(base_offset() + it_offset, base_offset() + size(), error_code);
        error_code == ErrorCode::kSuccess && it != Iterator();
        ++it, it_offset += sizeof(uint64_t)) {
     if (*it == 0)
-      return device.Write<uint64_t>(entry_offset, base_offset() + it_offset);
+      return reader_writer->Write<uint64_t>(entry_offset, base_offset() + it_offset);
   }
 
   if (error_code != ErrorCode::kSuccess)
@@ -20,20 +20,24 @@ ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, uint64_t start_posit
   return ErrorCode::kErrorNoMemory;
 }
 
-ErrorCode SectionDirectory::RemoveEntry(uint64_t entry_offset, uint64_t start_position) {
-  ErrorCode error_code;
+bool SectionDirectory::RemoveEntry(uint64_t entry_offset, ReaderWriter* reader_writer, ErrorCode& error_code, uint64_t start_position) {
+  bool removed = false;
+  bool has_entries = false;
   uint64_t it_offset = sizeof(SectionLayout::Header) + start_position;
   for (Iterator it(base_offset() + it_offset, base_offset() + size(), error_code);
        error_code == ErrorCode::kSuccess && it != Iterator();
        ++it, it_offset += sizeof(uint64_t)) {
-    if (*it == entry_offset)
-      return device.Write<uint64_t>(0, base_offset() + it_offset);
+    if (*it == entry_offset) {
+      error_code = reader_writer->Write<uint64_t>(0, base_offset() + it_offset);
+      return true; // TODO return has_entries
+    }
   }
 
   if (error_code != ErrorCode::kSuccess)
-    return error_code;
+    return true;
 
-  return ErrorCode::kErrorNotFound;
+  error_code = ErrorCode::kErrorNotFound;
+  return true;
 }
 
 }  // namespace ffs

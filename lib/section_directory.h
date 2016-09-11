@@ -11,8 +11,6 @@ namespace ffs {
 
 
 class SectionDirectory : Section {
-  static_assert(sizeof(Section) == sizeof(SectionDirectory));
-
  public:
   class Iterator : public std::iterator<std::input_iterator_tag, uint64_t> {
    public:
@@ -34,7 +32,7 @@ class SectionDirectory : Section {
     Iterator& operator++() {
       if (offset_ == end_)
         offset_ = 0;
-      else if (offset_)
+      else if (offset_) {
         *error_code = device.Read<uint64_t>(value_, offset_);
         if (*error_code != ErrorCode::kSuccess)
           offset_ = 0;
@@ -58,8 +56,8 @@ class SectionDirectory : Section {
   SectionDirectory() = delete;
   ~SectionDirectory() = default;
 
-  ErrorCode AddEntry(uint64_t entry_offset, uint64_t start_position = 0);
-  ErrorCode RemoveEntry(uint64_t entry_offset, uint64_t start_position = 0);
+  ErrorCode AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position = 0);
+  bool RemoveEntry(uint64_t entry_offset, ReaderWriter* reader_writer, ErrorCode& error_code, uint64_t start_position = 0);
 };
 
 }  // namespace ffs

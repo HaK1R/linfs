@@ -5,6 +5,7 @@
 
 #include "include/IFileSystem.h"
 #include "lib/entries/entry.h"
+#include "lib/reader_writer.h"
 
 namespace fs {
 
@@ -12,15 +13,21 @@ namespace ffs {
 
 class DirectoryEntry : public Entry {
  public:
-  static shared_ptr<DirectoryEntry> Create(const Section& section, ErrorCode& error_code, const char *name);
+  static shared_ptr<DirectoryEntry> Create(const Section& place,
+                                           ReaderWriter* reader_writer,
+                                           ErrorCode& error_code,
+                                           const char *name);
 
-  DirectoryEntry(uint64_t section_offset)
-      : Section(Type::kDirectory, section_offset) {}
+  DirectoryEntry(uint64_t base_offset)
+      : Entry(Type::kDirectory, base_offset) {}
   ~DirectoryEntry() override;
 
-  ErrorCode AddEntry(std::shared_ptr<Entry> entry);
-  ErrorCode RemoveEntry(std::shared_ptr<Entry> entry);
-  std::shared_ptr<Entry> FindEntryByName(const char *entry_name, ErrorCode& error_code);
+  ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer);
+  ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,
+                        ReaderWriter* reader_writer);
+  std::shared_ptr<Entry> FindEntryByName(const char *entry_name,
+                                         ReaderWriter* reader_writer,
+                                         ErrorCode& error_code);
 
   // TODO something better
   ErrorCode GetNextEntryName(const char *prev, char* next_buf);

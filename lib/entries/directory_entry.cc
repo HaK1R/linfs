@@ -5,17 +5,14 @@ namespace fs {
 namespace ffs {
 
 std::shared_ptr<DirectoryEntry> DirectoryEntry::Create(const Section& section,
+                                                       ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
-  error_code = device.Write(SectionLayout::Header(section.size(), section.base_offset()), section.base_offset());
+  error_code = device.Write(EntryLayout::Header(Entry::Type::kDirectory, name), section.data_offset());
   if (error_code != ErrorCode::kSuccess)
     return std::shared_ptr<DirectoryEntry>();
 
-  error_code = device.Write(EntryLayout::Header(Entry::Type::kDirectory, name), section.base_offset() + sizeof(SectionLayout::Header));
-  if (error_code != ErrorCode::kSuccess)
-    return std::shared_ptr<DirectoryEntry>();
-
-  return make_shared<DirectoryEntry>(section.base_offset());
+  return make_shared<DirectoryEntry>(section.data_offset());
 }
 
 DirectoryEntry::DirectoryEntry(uint64_t base_offset)
@@ -23,20 +20,21 @@ DirectoryEntry::DirectoryEntry(uint64_t base_offset)
 
 DirectoryEntry::~DirectoryEntry() override {}
 
-ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry) {
+ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
+                                   ReaderWriter* reader_writer) {
   ErrorCode error_code;
 
-  SectionDirectory sec_dir = device.LoadSection<SectionDirectory>(base_offset(), error_code);
+  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = sec_dir->AddEntry(entry->base_offset(), EntryLayout::kHeaderDirectorySize);
-  while (error_code == ErrorCode::kErrorNoMemory && sec_dir->next_offset()) {
-    sec_dir = device.LoadSection<SectionDirectory>(sec_dir->next_offset(), error_code);
+  error_code = sec_dir.AddEntry(entry->base_offset(), reader_writer, sizeof(EntryLayout::DirectoryHeader));
+  while (error_code == ErrorCode::kErrorNoMemory && sec_dir.next_offset()) {
+    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    error_code = sec_dir->AddEntry(entry->base_offset());
+    error_code = sec_dir.AddEntry(entry->base_offset(), reader_writer);
   }
 
   if (error_code != ErrorCode::kErrorNoMemory)
@@ -46,53 +44,53 @@ ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = next_sec_dir.FillZero();
-  if (error_code == ErrorCode::kSuccess) {
-    error_code = next_sec_dir.AddEntry(entry->base_offset());
-    if (error_code != ErrorCode::kSuccess) {
-      device.ReleaseSection(next_sec_dir);
-      return error_code;
-    }
+  error_code = next_sec_dir.Clear(reader_writer);
+  if (error_code != ErrorCode::kSuccess) {
+    device.ReleaseSection(next_sec_dir);
+    return error_code;
+  }
+
+  error_code = next_sec_dir.AddEntry(entry->base_offset(), reader_writer);
+  if (error_code != ErrorCode::kSuccess) {
+    device.ReleaseSection(next_sec_dir);
+    return error_code;
   }
 
   // Update next directory entry stored in |sec_dir.next_offset()|
-  error_code = device.Write<uint64_t>(next_sec_dir.base_offset(), sec_dir->base_offset() + offsetof(SectionLayout::Header, next_offset));
+  error_code = sec_dir.SetNext(next_sec_dir.base_offset(), reader_writer);
   if (error_code != ErrorCode::kSuccess)
     device.ReleaseSection(next_sec_dir);
 
   return error_code;
 }
 
-ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry) {
+ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer) {
   ErrorCode error_code;
-  uint64_t prev_offset = 0;
 
-  SectionDirectory sec_dir = device.LoadSection<SectionDirectory>(base_offset(), error_code);
+  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = sec_dir->RemoveEntry(entry->base_offset(), EntryLayout::kHeaderDirectorySize);
-  while (error_code == ErrorCode::kErrorNoMemory && sec_dir->next_offset()) {
-    prev_offset = sec_dir->base_offset();
-    sec_dir = device.LoadSection<SectionDirectory>(sec_dir->next_offset(), error_code);
+  sec_dir.RemoveEntry(entry->base_offset(), reader_writer, error_code, sizeof(EntryLayout::DirectoryHeader));
+  while (error_code == ErrorCode::kErrorNotFound && sec_dir.next_offset()) {
+    SectionDirectory prev_sec_dir = sec_dir;
+    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    error_code = sec_dir->RemoveEntry(entry->base_offset());
+    bool has_entries = sec_dir.RemoveEntry(entry->base_offset(), reader_writer, error_code);
+    if (error_code == ErrorCode::kSuccess && !has_entries) {
+      if (prev_sec_dir.SetNext(sec_dir.next_offset(), reader_writer) != ErrorCode::kSuccess)
+        device.ReleaseSection(next_sec_dir);
+      break;
+    }
   }
 
-  if (error_code != ErrorCode::kSuccess)
-    return error_code;
-
-  // TODO: use Section::kOffsetNone?
-  if (prev_offset && !sec_dir->HasEntries())
-    device.UnlinkAndReleaseSection(sec_dir, prev_offset);
-
-  return ErrorCode::kSuccess;
+  return error_code;
 }
 
-std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name, ErrorCode& error_code) {
-  SectionDirectory sec_dir = device.LoadSection<SectionDirectory>(base_offset(), error_code);
+std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(base_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
     return std::shared_ptr<Entry>();
 
@@ -104,7 +102,7 @@ std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name, E
          error_code == ErrorCode::kSuccess && it != Iterator(); ++it) {
       uint64_t it_offset = *it;
       char it_name[kNameMax + 1];
-      std::shared_ptr<Entry> entry = device.LoadEntry(it_offset, it_name, error_code);
+      std::shared_ptr<Entry> entry = reader_writer->LoadEntry(it_offset, it_name, error_code);
       if (error_code != ErrorCode::kSuccess)
         break;
 
@@ -120,7 +118,7 @@ std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name, E
       return std::shared_ptr<Entry>();
     }
 
-    sec_dir = device.LoadSection<SectionDirectory>(sec_dir->next_offset(), error_code);
+    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir->next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
       return std::shared_ptr<Entry>();
 

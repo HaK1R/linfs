@@ -6,45 +6,46 @@ namespace ffs {
 
 NoneEntry::~NoneEntry() override {}
 
-Section NoneEntry::GetSection(uint64_t max_size, ErrorCode& error_code) {
-  Section section = device.LoadSection(section_offset(), error_code);
+Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  if (!HasSections())
+    return Section(); // TODO throw?
+
+  Section head = reader_writer->LoadSection(head_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
     return Section();
 
-  if (section.size() > max_size) {
-    Section rest(section.base_offset() + max_size, section.size() - max_size, section.next_offset());
-    error_code = device.FlushSection(rest);
+  if (head.size() > max_size) {
+    Section result(head.base_offset() + head.size() - max_size, max_size, 0);
+    error_code = reader_writer->SaveSection(result);
     if (error_code != ErrorCode::kSuccess)
       return Section();
-    section.size(max_size);
-    section.next_offset(0);
-    section_offset(rest.base_offset());
-    return section;
+    error_code = head.SetSize(head.size() - max_size, reader_writer);
+    if (error_code != ErrorCode::kSuccess)
+      return Section();
+    return result;
   }
   else {
-    section.next_offset(0);
-    section_offset(section.next_offset());
+    error_code = SetHead(head.next_offset(), reader_writer);
+    if (error_code != ErrorCode::kSuccess)
+      return Section();
+    return head;
   }
-  return section;
 }
 
-ErrorCode NoneEntry::PutSection(Section section) {
+ErrorCode NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   // TODO lock-free?
   ErrorCode error_code = ErrorCode::kSuccess;
   Section last = section;
   while (last.next_offset() != 0) {
-    last = device.LoadSection(last.next_offset(), error_code);
+    last = reader_writer->LoadSection(last.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code; // Leaked chain of sections
   }
 
-  last.next_offset(section_offset());
-  ErrorCode error_code = device.FlushSection(last);
+  error_code = last.SetNext(head_offset(), reader_writer);
   if (error_code != ErrorCode::kSuccess)
     return error_code;  // Can't flush section with a new header; Drop broken section
-  section_offset(section.base_offset());
-  // TODO write section info on disk
-  return ErrorCode::kSuccess;
+  return SetHead(section.base_offset(), reader_writer);
 }
 
 }  // namespace ffs

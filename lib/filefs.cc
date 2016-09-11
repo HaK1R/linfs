@@ -20,7 +20,7 @@ FileFS::Release() {
 
 Section FileFS::AllocateSection(ErrorCode& error_code) {
   if (none_entry_->HasSections()) {
-    return none_entry_->GetSection(cluster_size_, error_code);
+    return none_entry_->GetSection(cluster_size_, accessor_, error_code);
   }
 
   // There is nothing in NoneEntry chain. Allocate a new cluster.
@@ -37,7 +37,7 @@ void FileFS::ReleaseSection(const Section& section, ErrorCode& error_code) {
     error_code = ErrorCode::kSuccess;
     --total_clusters_;
   } else {
-    error_code = none_entry->PutSection(section);
+    error_code = none_entry->PutSection(section, accessor_);
   }
 }
 
@@ -46,14 +46,6 @@ void FileFS::ReleaseSection(const Section& section) {
   ReleaseSection(section, error_code);
   if (error_code != ErrorCode::kSuccess)
     std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size();
-}
-
-void FileFS::UnlinkAndReleaseSection(const Section& section, uint64_t prev_offset) {
-  ErrorCode error_code = device.Write<uint64_t>(section->next_offset(), prev_offset + offsetof(SectionLayout::Header, next_offset));
-  if (error_code != ErrorCode::kSuccess)
-    std::cerr << "Broken section's memory at " << std::hex << prev_offset;
-  else
-    ReleaseSection(section);
 }
 
 template<typename T>
@@ -68,23 +60,8 @@ std::shared_ptr<T> FileFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... arg
 }
 
 void FileFS::ReleaseEntry(shared_ptr<Entry> entry) {
-  ReleaseSection(Section(entry->base_offset(), cluster_size_, 0));
-}
-
-Entry* FileFS::LoadEntry(uint64_t offset) {
-  EntryLayout::Header entry_header;
-  device_.seekg(offset);
-  device_.read(&entry_header, sizeof entry_header);
-
-  switch (static_cast<Entry::Type>(entry_header.type)) {
-    case Entry::Type::kDirectory:
-      return new DirectoryEntry(offset, std::string(entry_header.name, sizeof entry_header.name));
-    case Entry::Type::File:
-      return new FileEntry(offset, std::string(entry_header.name, sizeof entry_header.name));
-    case Entry::Type::kNone:
-      return new NoneEntry(offset);
-  }
-}
+  ReleaseSection(Section(entry->section_offset(), cluster_size_, 0));
+} 
 
 std::shared_ptr<DirectoryEntry> FileFS::GetDirectory(Path path, ErrorCode& error_code) {
   std::shared_ptr<DirectoryEntry> cwd = root_entry_;
@@ -101,33 +78,60 @@ std::shared_ptr<DirectoryEntry> FileFS::GetDirectory(Path path, ErrorCode& error
 }
 
 FileFS::Load(const char *device_path) {
-  device_.open(device_path, std::ios::binary | std::ios::in | std::ios::out);
-  if (!device.is_open())
-    return -1;
+  ErrorCode error_code = accessor_.Open(device_path, std::ios_base::in | std::ios_base::out);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
-  DeviceLayout::Header device_header;
-  uint16_t root_entry_offset;
-  DeviceLayout::ParseHeader(device_, cluster_size_, root_entry_offset);
+  uint16_t none_entry_offset, root_entry_offset;
+  error_code = DeviceLayout::ParseHeader(accessor_, cluster_size_,
+                                         none_entry_offset,
+                                         root_entry_offset);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
-  root_entry_ = LoadEntry<DirectoryEntry>(root_entry_offset);
-  if (none_entry_offset)
-    none_entry_ = LoadEntry<DirectoryEntry>(root_entry_offset);
+  none_entry_ = accessor_.LoadEntry(none_entry_offset_, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  root_entry_ = accessor_.LoadEntry(root_entry_offset, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+  //accessor_.StreamReader(error_code, none_entry_offset) >> none_entry_;
+  //root_entry_.StreamReader(error_code, root_entry_offset) >> root_entry_;
 }
 
 int FileFS::Format(const char *device_path, uint64_t cluster_size) {
-  std::fstream device(device_path, std::ios::binary | std::ios::out | std::ios::trunc);
-  if (!device.is_open())
-    return -1;
+  struct __attribute__((packed)) EmptyDiskData {
+    DeviceLayout::Header device_header;
+    EntryLayout::NoneHeader none_entry_header;
+    struct __attribute__((packed)) {
+      SectionLayout::Header section_header;
+      EntryLayout::DirectoryHeader entry_header;
+    } root;
+  };
+  static_assert(std::is_standard_layout<EmptyDiskData>::value,
+                "EmptyDiskData must be a standard-layout class");
+  static EmptyDiskData data = {
+      DeviceLayout::Header(ClusterSize::k4Kb,
+                           offsetof(EmptyDiskData, none_entry_header),
+                           offsetof(EmptyDiskData, root)),
+      EntryLayout::NoneHeader(0),
+      {SectionLayout::Header((1 << ClusterSize::k4Kb) - offsetof(EmptyDiskData, root), 0),
+       EntryLayout::DirectoryHeader("/")}
+  };
 
-  device << DeviceLayout::Header(ClusterSize::k4Kb, sizeof(DeviceLayout::Header) + sizeof(EntryLayout::Header), 
-                                 sizeof(DeviceLayout::Header))
-         << EntryLayout::Header(Entry::Type::kNone)
-         << EntryLayout::Header(Entry::Type::kDirectory, "/")
-         << SectionLayout::Header(cluster_size - sizeof(DeviceLayout::Header) - sizeof(EntryLayout::Header), 0,
-                                  cluster_size - sizeof(DeviceLayout::Header) - sizeof(EntryLayout::Header) - sizeof(SectionLayout::Header));
+  ErrorCode error_code;
+  ReaderWriter writer;
+  error_code = writer.Open(device_path, std::ios_base::out | std::ios_base::trunc);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
-  device.close();
-  return 0;
+  writer << data.device_header
+         << data.none_entry_header
+         << data.root.section_header
+         << data.root.entry_header;
+
+  return ErrorCode::kSuccess;
 }
 
 int FileFS::CreateDirectory(const char *path_cstr) override {
@@ -148,7 +152,7 @@ int FileFS::CreateDirectory(const char *path_cstr) override {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = cwd->AddEntry(new_dir);
+  error_code = cwd->AddEntry(new_dir, accessor_);
   if (error_code != ErrorCode::kSuccess) {
     ReleaseEntry(new_dir);
     return error_code;
@@ -170,7 +174,7 @@ int FileFS::RemoveDirectory(const char *path_cstr) override {
   if (!dir->Empty())
     return ErrorCode::kErrorNotEmpty;
 
-  error_code = cwd->RemoveEntry(dir);
+  error_code = cwd->RemoveEntry(dir, accessor_);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
@@ -189,7 +193,7 @@ const char* FileFS::ListDirectory(const char *path_cstr, const char *prev,
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = cwd->GetNextEntryName(prev, next_buf, error_code);
+  error_code = cwd->GetNextEntryName(prev, accessor_, next_buf);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
