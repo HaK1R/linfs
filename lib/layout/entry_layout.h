@@ -53,6 +53,7 @@ class EntryLayout {
   };
 
   struct __attribute__((packed)) FileHeader : _Header {
+    uint64_t size;               // file size
     char name[kNameMax];         // file name
   };
 

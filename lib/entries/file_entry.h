@@ -11,17 +11,17 @@ namespace ffs {
 
 class FileEntry : public Entry {
  public:
-  FileEntry(uint64_t base_offset, const char *name)
-      : Entry(Type::kFile, base_offset), name_(name) {}
+  FileEntry(uint64_t base_offset, uint64_t size)
+      : Entry(Type::kFile, base_offset), size_(size) {}
   ~FileEntry() override {}
 
-  const char* name() const { return name_; }
+  uint64_t size() const { return size_; }
 
-  size_t Read(uint64_t position, char *buffer, size_t buffer_size);
-  size_t Write(uint64_t position, const char *buffer, size_t buffer_size);
+  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code);
+  size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator, ErrorCode& error_code);
 
- protected:
-  char name_[kNameMax];
+ private:
+  uint64_t size_;
 };
 
 }  // namespace ffs

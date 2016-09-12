@@ -116,7 +116,38 @@ int FileFS::Format(const char *device_path, uint64_t cluster_size) {
   return ErrorCode::kSuccess;
 }
 
-int FileFS::CreateDirectory(const char *path_cstr) override {
+IFile* FileFS::OpenFile(const char *path_cstr, ErrorCode& error_code) override {
+  Path path = Path::Normalize(path_cstr, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return nullptr;
+
+  std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return nullptr;
+
+  std::shared_ptr<FileEntry> file_entry = cwd->FindEntryByName(this, path.BaseName(), error_code);
+  if (error_code == ErrorCode::kErrorNotFound) {
+    file_entry = AllocateEntry<FileEntry>(error_code, path.BaseName());
+    if (error_code != ErrorCode::kSuccess)
+      return nullptr;
+
+    error_code = cwd->AddEntry(file_entry, &accessor_);
+    if (error_code != ErrorCode::kSuccess) {
+      ReleaseEntry(file_entry);
+      return nullptr;
+    }
+  }
+  if (error_code != ErrorCode::kSuccess)
+    return nullptr;
+
+  IFile* file = new (std::nothrow) FileImpl(file_entry, &accessor_, &allocator_);
+  if (file == nullptr)
+    error_code = ErrorCode::kErrorNoMemory;
+
+  return file;
+}
+
+ErrorCode FileFS::CreateDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);
@@ -143,7 +174,7 @@ int FileFS::CreateDirectory(const char *path_cstr) override {
   return ErrorCode::kSuccess;
 }
 
-int FileFS::RemoveDirectory(const char *path_cstr) override {
+ErrorCode FileFS::RemoveDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);

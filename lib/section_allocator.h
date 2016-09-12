@@ -19,18 +19,19 @@ class SectionAllocator {
   ~SectionAllocator() = default;
 
   template<typename T = Section>
-  T AllocateSection(ReaderWriter* reader_writer, ErrorCode& error_code) {
+  T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
     if (none_entry_->HasSections()) {
-      return none_entry_->GetSection(cluster_size_, reader_writer, error_code);
+      return none_entry_->GetSection(size, reader_writer, error_code);
     }
 
     // There is nothing in NoneEntry chain. Allocate a new cluster.
-    T section(total_clusters_ * cluster_size_, cluster_size_, 0);
+    uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
+    T section(total_clusters_ * cluster_size_, required_clusters * cluster_size_, 0);
     error_code = reader_writer->SaveSection(section);
     if (error_code == ErrorCode::kSuccess) {
       error_code = reader_writer->Write<uint8_t>(0, section.base_offset() - 1);
       if (error_code == ErrorCode::kSuccess)
-        ++total_clusters_;
+        total_clusters_ += required_clusters;
     }
     return section;
   }

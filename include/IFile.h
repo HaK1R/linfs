@@ -8,9 +8,9 @@ namespace fs {
 
 class IFile {
  public:
-  virtual size_t read(char *buf, size_t buf_size) = 0;
-  virtual size_t write(const char *buf, size_t buf_size) = 0;
-  virtual void close() = 0;
+  virtual size_t Read(char *buf, size_t buf_size) = 0;
+  virtual size_t Write(const char *buf, size_t buf_size) = 0;
+  virtual void Close() = 0;
 };
 
 }  // namespace fs

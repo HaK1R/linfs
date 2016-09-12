@@ -43,6 +43,19 @@ class ReaderWriter {
     return value;
   }
 
+  size_t Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code) {
+    device_.seekg(offset);
+    if (!device_.good()) {
+      error_code = ErrorCode::kErrorInputOutput;
+      return 0;
+    }
+
+    device_.read(buf, buf_size);
+    if (!device_.good()) {
+      error_code = ErrorCode::kErrorInputOutput;
+    return device_.gcount();
+  }
+
   template<typename T,
            typename Distance = std::ptrdiff_t> // TODO void?
   class ReadIterator : public std::iterator<std::input_iterator_tag,
@@ -91,19 +104,31 @@ class ReaderWriter {
   template<typename T>
   ErrorCode Write(T value, uint64_t offset) {
     device_.seekp(offset);
-    if (!device_.good()) {
-      error_code = ErrorCode::kErrorInputOutput;
-      return value;
-    }
+    if (!device_.good())
+      return ErrorCode::kErrorInputOutput;
 
     // TODO check endianness
     device_.write(&value, sizeof value);
+    if (!device_.good())
+      return ErrorCode::kErrorInputOutput;
+
+    return ErrorCode::kSuccess;
+  }
+
+  size_t Write(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code) {
+    device_.seekp(offset);
     if (!device_.good()) {
       error_code = ErrorCode::kErrorInputOutput;
-      return value;
+      return 0;
     }
 
-    error_code = ErrorCode::kSuccess;
+    device_.write(buf, buf_size);
+    if (!device_.good()) {
+      error_code = ErrorCode::kErrorInputOutput;
+      return 0;
+    }
+
+    return buf_size;
   }
 
   template<typename T = Section>
@@ -130,8 +155,9 @@ class ReaderWriter {
         return std::make_shared<DirectoryEntry>(offset, std::string(entry_header.directory.name,
                                                                     sizeof entry_header.directory.name));
       case Entry::Type::File:
-        return std::make_shared<FileEntry>(offset, std::string(entry_header.file.name,
-                                                               sizeof entry_header.file.name));
+        return std::make_shared<FileEntry>(offset, entry_header.file.size,
+                                           std::string(entry_header.file.name,
+                                                       sizeof entry_header.file.name));
     }
     return std::make_shared<Entry>();
   }

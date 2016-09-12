@@ -9,7 +9,6 @@ namespace fs {
 
 namespace ffs {
 
-
 class SectionDirectory : Section {
  public:
   typedef ReaderWriter::ReadIterator<uint64_t> Iterator;
