@@ -4,6 +4,16 @@ namespace fs {
 
 namespace ffs {
 
+std::shared_ptr<NoneEntry> NoneEntry::Create(uint64_t base_offset,
+                                             ReaderWriter* writer,
+                                             ErrorCode& error_code) {
+  error_code = device.Write(EntryLayout::NoneHeader(Entry::Type::kNone, 0), base_offset);
+  if (error_code != ErrorCode::kSuccess)
+    return std::shared_ptr<NoneEntry>();
+
+  return make_shared<NoneEntry>(base_offset, 0);
+}
+
 NoneEntry::~NoneEntry() override {}
 
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {

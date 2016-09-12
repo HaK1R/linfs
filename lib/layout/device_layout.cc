@@ -6,28 +6,26 @@ namespace fs {
 
 namespace ffs {
 
-bool DeviceLayout::ParseHeader(std::ifstream& file, uint64_t& section_size,
-                               uint16_t& root_section_offset) {
-  Header from_file;
-  if (sizeof from_file != file.read(&from_file, sizeof from_file))
-    return false;
+ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, uint64_t& cluster_size, uint16_t& none_entry_offset, uint16_t& root_section_offset, uint64_t& total_clusters) {
+  Header from_file = reader->Read<DeviceLayout::Header>(0, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
   Header default_header;
   if (memcmp(from_file.identifier, default_header.identifier))
-    return false;
+    return ErrorCode::kErrorInvalidSignature;
 
   if (from_file.version.major > default_header.version.major ||
       from_file.version.major == default_header.version.major &&
       from_file.version.minor > default_header.version.minor)
-    return false;
+    return ErrorCode::kErrorVersionNotSupported;
 
-  section_size = 1 << from_file.section_size_log2;
+  cluster_size = 1 << from_file.section_size_log2;
+  // TODO fix endianness
+  none_entry_offset = from_file.none_entry_offset;
   root_section_offset = from_file.root_section_offset;
-  return true;
-}
-
-bool DeviceLayout::WriteHeader(std::ofstream& file, const Header& header) {
-  return sizeof header == file.write(&header, sizeof header);
+  total_clusters = from_file.total_clusters;
+  return ErrorCode::kSuccess;
 }
 
 }  // namespace ffs

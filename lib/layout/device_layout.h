@@ -25,12 +25,13 @@ class DeviceLayout {
     uint64_t total_clusters = 1;  // total number of allocated clusters
   };
 
-  static bool ParseHeader(std::ifstream& file, uint64_t& cluster_size,
-                          uint16_t& root_section_offset);
-  static bool WriteHeader(std::ofstream& file, const Header& header);
+  static ErrorCode ParseHeader(ReaderWriter* reader, uint64_t& cluster_size,
+                               uint16_t& none_entry_offset,
+                               uint16_t& root_section_offset,
+                               uint64_t& total_clusters);
 };
 
-ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);
+// TODO? ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);
 
 }  // namespace ffs
 

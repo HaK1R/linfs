@@ -22,9 +22,10 @@ class DirectoryEntry : public Entry {
       : Entry(Type::kDirectory, base_offset) {}
   ~DirectoryEntry() override;
 
-  ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer);
+  ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
   ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,
-                        ReaderWriter* reader_writer);
+                        ReaderWriter* reader_writer,
+                        SectionAllocator* allocator);
   std::shared_ptr<Entry> FindEntryByName(const char *entry_name,
                                          ReaderWriter* reader_writer,
                                          ErrorCode& error_code,

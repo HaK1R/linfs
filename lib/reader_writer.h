@@ -115,7 +115,7 @@ class ReaderWriter {
     return T(offset, header.size, header.next_offset, std::forward<Args>(args)...);
   }
 
-  ErrorCode SaveSection(Section section, ErrorCode& error_code) {
+  ErrorCode SaveSection(Section section) {
     SectionLayout::Header header(section.size(), section.next_offset());
     return Write<SectionLayout::Header>(header, section.base_offset());
   }

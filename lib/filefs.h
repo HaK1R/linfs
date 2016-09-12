@@ -137,9 +137,7 @@ class FileFS : public IFileSystem {
 
  private:
   ReaderWriter accessor_;
-  uint64_t cluster_size_;
-  uint64_t total_clusters_;
-  std::shared_ptr<NoneEntry> none_entry_;
+  SectionAllocator allocator_;
   std::shared_ptr<DirectoryEntry> root_entry_;
 };
 
