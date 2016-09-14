@@ -1,4 +1,4 @@
-#include "lib/entries/directory_entry.h"
+#include "lib/entries/none_entry.h"
 
 namespace fs {
 
@@ -11,10 +11,8 @@ std::shared_ptr<NoneEntry> NoneEntry::Create(uint64_t base_offset,
   if (error_code != ErrorCode::kSuccess)
     return std::shared_ptr<NoneEntry>();
 
-  return make_shared<NoneEntry>(base_offset, 0);
+  return std::make_shared<NoneEntry>(base_offset, 0);
 }
-
-NoneEntry::~NoneEntry() override {}
 
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
   if (!HasSections())
@@ -56,6 +54,14 @@ ErrorCode NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;  // Can't flush section with a new header; Drop broken section
   return SetHead(section.base_offset(), reader_writer);
+}
+
+ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
+  ErrorCode error_code = reader_writer->Write<uint64_t>(head_offset,
+                                        base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
+  if (error_code == ErrorCode::kSuccess)
+    head_offset_ = head_offset;
+  return error_code;
 }
 
 }  // namespace linfs

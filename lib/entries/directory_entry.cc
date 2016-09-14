@@ -1,5 +1,7 @@
 #include "lib/entries/directory_entry.h"
 
+#include "lib/layout/entry_layout.h"
+
 namespace fs {
 
 namespace linfs {

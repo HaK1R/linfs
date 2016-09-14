@@ -1,7 +1,10 @@
-#include <cstddef>
+#include "lib/linfs.h"
 
-#include "include/interfaces/IFileSystem.h"
-#include "include/LinFS.h"
+#include <cstddef>
+#include <utility>
+
+#include "lib/entries/file_entry.h"
+#include "lib/file_impl.h"
 #include "lib/layout/device_format.h"
 
 namespace fs {
@@ -29,9 +32,9 @@ std::shared_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args
   return error_code;
 }
 
-void LinFS::ReleaseEntry(shared_ptr<Entry> entry) {
+void LinFS::ReleaseEntry(std::shared_ptr<Entry> entry) {
   allocate_.ReleaseSection(Section(entry->section_offset(), cluster_size_, 0));
-} 
+}
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
   std::shared_ptr<DirectoryEntry> cwd = root_entry_;
@@ -76,7 +79,7 @@ LinFS::Load(const char *device_path) {
   // TODO? root_entry_.StreamReader(error_code, root_entry_offset) >> root_entry_;
 }
 
-int LinFS::Format(const char *device_path, uint64_t cluster_size) {
+int LinFS::Format(const char *device_path, ClusterSize cluster_size) {
   // Used only to calculate offsets
   struct __attribute__((packed)) EmptyLayout {
     DeviceLayout::Header device_header;

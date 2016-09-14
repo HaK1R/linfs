@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
-#include <iterator>
+#include "fs/error_code.h"
+#include "lib/reader_writer.h"
+#include "lib/section.h"
 
 namespace fs {
 
@@ -13,9 +14,8 @@ class SectionDirectory : Section {
  public:
   typedef ReaderWriter::ReadIterator<uint64_t> Iterator;
 
-  using Section::Section;
   SectionDirectory() = delete;
-  ~SectionDirectory() = default;
+  using Section::Section;
 
   Iterator EntriesBegin(ReaderWriter* reader_writer, ErrorCode& error_code, uint64_t start_position = 0) {
     return Iterator(data_offset() + start_position, reader_writer, error_code);

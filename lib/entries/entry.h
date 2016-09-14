@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "lib/layout/section_layout.h"
+
 namespace fs {
 
 namespace linfs {
@@ -18,15 +20,15 @@ class Entry {
       : type_(type), base_offset_(base_offset) {}
   virtual ~Entry() = 0;
 
-  GetAsyncReader();
+  // TODO? GetAsyncReader();
 
   Type type() const { return type_; }
   uint64_t base_offset() const { return base_offset_; }
   uint64_t section_offset() const { return base_offset() - sizeof(SectionLayout::Header); }
 
- protected:
-  Type type_;
-  uint64_t base_offset_;
+ private:
+  const Type type_;
+  const uint64_t base_offset_;
 };
 
 }  // namespace linfs

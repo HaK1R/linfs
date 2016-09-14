@@ -1,8 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 
+#include "fs/error_code.h"
 #include "lib/entries/entry.h"
+#include "lib/reader_writer.h"
+#include "lib/section.h"
 
 namespace fs {
 
@@ -10,6 +15,10 @@ namespace linfs {
 
 class NoneEntry : public Entry {
  public:
+  static std::shared_ptr<NoneEntry> Create(uint64_t base_offset,
+                                           ReaderWriter* writer,
+                                           ErrorCode& error_code);
+
   NoneEntry(uint64_t base_offset, uint64_t head_offset)
       : Entry(Type::kNone, base_offset), head_offset_(head_offset) {}
   ~NoneEntry() override {}
@@ -21,14 +30,8 @@ class NoneEntry : public Entry {
   ErrorCode PutSection(Section section, ReaderWriter* reader_writer);
   bool HasSections() const { return head_offset_ != 0; }
 
- protected:
-  ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
-    ErrorCode error_code = reader_writer->Write<uint64_t>(head_offset,
-                                          base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
-    if (error_code == ErrorCode::kSuccess)
-      head_offset_ = head_offset;
-    return error_code;
-  }
+ private:
+  ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer);
 
   uint64_t head_offset_;
 };

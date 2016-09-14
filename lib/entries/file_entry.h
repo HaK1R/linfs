@@ -1,9 +1,14 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 
-#include "include/IFileSystem.h"
+#include "fs/error_code.h"
 #include "lib/entries/entry.h"
+#include "lib/reader_writer.h"
+#include "lib/section_allocator.h"
+#include "lib/section_file.h"
 
 namespace fs {
 
@@ -11,6 +16,11 @@ namespace linfs {
 
 class FileEntry : public Entry {
  public:
+  static std::shared_ptr<FileEntry> Create(const Section& section,
+                                           ReaderWriter* writer,
+                                           ErrorCode& error_code,
+                                           const char *name);
+
   FileEntry(uint64_t base_offset, uint64_t size)
       : Entry(Type::kFile, base_offset), size_(size) {}
   ~FileEntry() override {}
@@ -21,6 +31,9 @@ class FileEntry : public Entry {
   size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator, ErrorCode& error_code);
 
  private:
+  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code);
+  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer) { return ErrorCode::kSuccess; } // TODO
+
   uint64_t size_;
 };
 

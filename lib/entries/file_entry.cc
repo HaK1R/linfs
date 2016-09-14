@@ -1,4 +1,6 @@
-#include "lib/entries/directory_entry.h"
+#include "lib/entries/file_entry.h"
+
+#include "lib/layout/entry_layout.h"
 
 namespace fs {
 
@@ -12,29 +14,27 @@ std::shared_ptr<FileEntry> FileEntry::Create(const Section& section,
   if (error_code != ErrorCode::kSuccess)
     return std::shared_ptr<FileEntry>();
 
-  return make_shared<FileEntry>(section.data_offset(), 0);
+  return std::make_shared<FileEntry>(section.data_offset(), 0);
 }
 
-FileEntry::~FileEntry() override {}
-
-std::tuple<SectionFile, uint64_t> FileEntry::CursorToSection(uint64_t cursor, ReaderWriter* reader_writer, ErrorCode& error_code) {
+SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code) {
   SectionFile sec_file = reader_writer->LoadSection<SectionFile>(section_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
-    return std::make_tuple(sec_file, 0);
+    return SectionFile();
 
   cursor += sizeof(EntryLayout::FileHeader);
   while (cursor > sec_file.data_size() && sec_file.next_offset()) {
     cursor -= sec_file.data_size();
     sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
-      return std::make_tuple(sec_file, 0);
+      return SectionFile();
   }
 
   if (cursor < sec_file.data_size())
-    return std::make_tuple(sec_file, cursor);
+    return sec_file;
 
   error_code = ErrorCode::kErrorNoData;
-  return std::make_tuple(sec_file, 0);
+  return SectionFile();
 }
 
 size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code) {

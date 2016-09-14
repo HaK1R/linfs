@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <iterator>
+#include "fs/error_code.h"
+#include "lib/reader_writer.h"
+#include "lib/section.h"
 
 namespace fs {
 
@@ -11,9 +13,8 @@ namespace linfs {
 
 class SectionFile : Section {
  public:
-  using Section::Section;
   SectionFile() = delete;
-  ~SectionFile() = default;
+  using Section::Section;
 
   size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code);
   size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code);

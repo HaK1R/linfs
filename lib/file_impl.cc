@@ -1,5 +1,9 @@
 #include "lib/file_impl.h"
 
+#include <algorithm>
+
+#include "fs/error_code.h"
+
 namespace fs {
 
 namespace linfs {

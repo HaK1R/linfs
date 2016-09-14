@@ -3,9 +3,12 @@
 #include <cstdint>
 #include <memory>
 
-#include "include/IFileSystem.h"
+#include "fs/error_code.h"
 #include "lib/entries/entry.h"
 #include "lib/reader_writer.h"
+#include "lib/section.h"
+#include "lib/section_allocator.h"
+#include "lib/section_directory.h"
 
 namespace fs {
 
@@ -13,14 +16,14 @@ namespace linfs {
 
 class DirectoryEntry : public Entry {
  public:
-  static shared_ptr<DirectoryEntry> Create(const Section& place,
-                                           ReaderWriter* reader_writer,
-                                           ErrorCode& error_code,
-                                           const char *name);
+  static std::shared_ptr<DirectoryEntry> Create(const Section& place,
+                                                ReaderWriter* reader_writer,
+                                                ErrorCode& error_code,
+                                                const char *name);
 
   DirectoryEntry(uint64_t base_offset)
       : Entry(Type::kDirectory, base_offset) {}
-  ~DirectoryEntry() override;
+  ~DirectoryEntry() override {}
 
   ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
   ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,

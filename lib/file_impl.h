@@ -1,6 +1,13 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+
+#include "fs/IFile.h"
+#include "lib/entries/file_entry.h"
+#include "lib/reader_writer.h"
+#include "lib/section_allocator.h"
 
 namespace fs {
 

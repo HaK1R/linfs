@@ -1,4 +1,4 @@
-#include "lib/entries/directory_entry.h"
+#include "lib/section_directory.h"
 
 namespace fs {
 

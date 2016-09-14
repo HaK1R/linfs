@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <ios>
+#include <memory>
 
+#include "fs/error_code.h"
+#include "lib/entries/none_entry.h"
+#include "lib/reader_writer.h"
 #include "lib/section.h"
 
 namespace fs {
@@ -36,26 +39,13 @@ class SectionAllocator {
     return section;
   }
 
-  void ReleaseSection(const Section& section, ReaderWriter* reader_writer, ErrorCode& error_code) {
-    uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
-    if (last_cluster_offset == section.base_offset()) {
-      error_code = ErrorCode::kSuccess;
-      --total_clusters_;
-    } else {
-      error_code = none_entry->PutSection(section, reader_writer);
-    }
-  }
-
-  void ReleaseSection(const Section& section, ReaderWriter* reader_writer) {
-    ErrorCode error_code;
-    ReleaseSection(section, reader_writer, error_code);
-    if (error_code != ErrorCode::kSuccess)
-      std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size();
-  }
+  void ReleaseSection(const Section& section, ReaderWriter* reader_writer, ErrorCode& error_code);
+  void ReleaseSection(const Section& section, ReaderWriter* reader_writer);
 
  private:
   const uint64_t cluster_size_ = 0;
   uint64_t total_clusters_ = 0;
+  // TODO unique_ptr
   std::shared_ptr<NoneEntry> none_entry_;
 };
 

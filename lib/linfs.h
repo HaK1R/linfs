@@ -2,16 +2,16 @@
 
 #include <memory>
 
-#include "IFileSystem.h"
-
+#include "fs/error_code.h"
+#include "fs/IFileSystem.h"
+#include "lib/entries/directory_entry.h"
+#include "lib/entries/entry.h"
 #include "lib/reader_writer.h"
 #include "lib/section_allocator.h"
 
 namespace fs {
 
 namespace linfs {
-
-class DirectoryEntry;
 
 class LinFS : public IFileSystem {
  public:
@@ -34,6 +34,11 @@ class LinFS : public IFileSystem {
                             char *next_buf, ErrorCode& error_code) override;
 
  private:
+  template<typename T> std::shared_ptr<T> AllocateEntry<T>(ErrorCode& error_code, Args&&... args);
+  void ReleaseEntry(std::shared_ptr<Entry> entry);
+
+  std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
+
   ReaderWriter accessor_;
   SectionAllocator allocator_;
   std::shared_ptr<DirectoryEntry> root_entry_;
