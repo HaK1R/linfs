@@ -2,7 +2,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 std::shared_ptr<NoneEntry> NoneEntry::Create(uint64_t base_offset,
                                              ReaderWriter* writer,
@@ -58,6 +58,6 @@ ErrorCode NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   return SetHead(section.base_offset(), reader_writer);
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

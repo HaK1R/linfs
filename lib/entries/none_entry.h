@@ -6,7 +6,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class NoneEntry : public Entry {
  public:
@@ -33,6 +33,6 @@ class NoneEntry : public Entry {
   uint64_t head_offset_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

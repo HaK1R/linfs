@@ -8,11 +8,11 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class DirectoryEntry;
 
-class FileFS : public IFileSystem {
+class LinFS : public IFileSystem {
  public:
   void Realese() override;
 
@@ -141,6 +141,6 @@ class FileFS : public IFileSystem {
   std::shared_ptr<DirectoryEntry> root_entry_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

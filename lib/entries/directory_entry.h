@@ -9,7 +9,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class DirectoryEntry : public Entry {
  public:
@@ -34,6 +34,6 @@ class DirectoryEntry : public Entry {
   ErrorCode GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

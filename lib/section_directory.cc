@@ -2,7 +2,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position) {
   ErrorCode error_code;
@@ -45,6 +45,6 @@ bool SectionDirectory::HasEntries(ReaderWriter* reader_writer, ErrorCode& error_
   return false;
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

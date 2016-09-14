@@ -7,7 +7,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class ReaderWriter {
  public:
@@ -166,6 +166,6 @@ class ReaderWriter {
   std::fstream device_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

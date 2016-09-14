@@ -2,7 +2,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 std::shared_ptr<FileEntry> FileEntry::Create(const Section& section,
                                              ReaderWriter* writer,
@@ -94,6 +94,6 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
   return written;
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

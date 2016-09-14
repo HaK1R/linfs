@@ -7,7 +7,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class SectionFile : Section {
  public:
@@ -19,6 +19,6 @@ class SectionFile : Section {
   size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code);
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

@@ -2,7 +2,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 size_t FileImpl::Read(char *buf, size_t buf_size) {
   ErrorCode error_code;
@@ -23,6 +23,6 @@ void FileImpl::Close() {
   delete this;
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

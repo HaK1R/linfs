@@ -4,7 +4,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class Section {
  public:
@@ -56,6 +56,6 @@ class Section {
   uint64_t next_offset_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

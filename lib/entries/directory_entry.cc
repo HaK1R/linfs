@@ -2,7 +2,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 std::shared_ptr<DirectoryEntry> DirectoryEntry::Create(const Section& section,
                                                        ReaderWriter* writer,
@@ -163,6 +163,6 @@ ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reade
   return error_code;
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

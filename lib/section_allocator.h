@@ -7,7 +7,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class SectionAllocator {
  public:
@@ -59,6 +59,6 @@ class SectionAllocator {
   std::shared_ptr<NoneEntry> none_entry_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

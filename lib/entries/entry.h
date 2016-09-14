@@ -4,7 +4,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class Entry {
  public:
@@ -29,6 +29,6 @@ class Entry {
   uint64_t base_offset_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

@@ -5,7 +5,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class Path {
  public:
@@ -59,6 +59,6 @@ class Path {
   std::string data_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

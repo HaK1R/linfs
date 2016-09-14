@@ -4,7 +4,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class FileImpl : IFile {
  public:
@@ -23,6 +23,6 @@ class FileImpl : IFile {
   SectionAllocator* allocator_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

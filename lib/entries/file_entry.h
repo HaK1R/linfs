@@ -7,7 +7,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class FileEntry : public Entry {
  public:
@@ -24,6 +24,6 @@ class FileEntry : public Entry {
   uint64_t size_;
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

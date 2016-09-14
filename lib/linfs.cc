@@ -1,25 +1,25 @@
 #include <cstddef>
 
 #include "include/interfaces/IFileSystem.h"
-#include "include/FileFS.h"
+#include "include/LinFS.h"
 #include "lib/layout/device_format.h"
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
-FileFS::FileFS() {
+LinFS::LinFS() {
 }
 
-FileFS::~FileFS() {
+LinFS::~LinFS() {
 }
 
-FileFS::Release() {
+LinFS::Release() {
   delete this;
 }
 
 template<typename T>
-std::shared_ptr<T> FileFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
+std::shared_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
   Section place = allocator_.AllocateSection(error_code);
   if (error_code != ErrorCode::kSuccess) return error_code;
 
@@ -29,11 +29,11 @@ std::shared_ptr<T> FileFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... arg
   return error_code;
 }
 
-void FileFS::ReleaseEntry(shared_ptr<Entry> entry) {
+void LinFS::ReleaseEntry(shared_ptr<Entry> entry) {
   allocate_.ReleaseSection(Section(entry->section_offset(), cluster_size_, 0));
 } 
 
-std::shared_ptr<DirectoryEntry> FileFS::GetDirectory(Path path, ErrorCode& error_code) {
+std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
   std::shared_ptr<DirectoryEntry> cwd = root_entry_;
   while (!path.Empty()) {
     std::shared_ptr<Entry> entry = dir->FindEntryByName(this, path.FirstName(), error_code);
@@ -47,7 +47,7 @@ std::shared_ptr<DirectoryEntry> FileFS::GetDirectory(Path path, ErrorCode& error
   return dir;
 }
 
-FileFS::Load(const char *device_path) {
+LinFS::Load(const char *device_path) {
   ErrorCode error_code = accessor_.Open(device_path, std::ios_base::in | std::ios_base::out);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
@@ -76,7 +76,7 @@ FileFS::Load(const char *device_path) {
   // TODO? root_entry_.StreamReader(error_code, root_entry_offset) >> root_entry_;
 }
 
-int FileFS::Format(const char *device_path, uint64_t cluster_size) {
+int LinFS::Format(const char *device_path, uint64_t cluster_size) {
   // Used only to calculate offsets
   struct __attribute__((packed)) EmptyLayout {
     DeviceLayout::Header device_header;
@@ -116,7 +116,7 @@ int FileFS::Format(const char *device_path, uint64_t cluster_size) {
   return ErrorCode::kSuccess;
 }
 
-IFile* FileFS::OpenFile(const char *path_cstr, ErrorCode& error_code) override {
+IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) override {
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
@@ -147,7 +147,7 @@ IFile* FileFS::OpenFile(const char *path_cstr, ErrorCode& error_code) override {
   return file;
 }
 
-ErrorCode FileFS::CreateDirectory(const char *path_cstr) override {
+ErrorCode LinFS::CreateDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);
@@ -174,7 +174,7 @@ ErrorCode FileFS::CreateDirectory(const char *path_cstr) override {
   return ErrorCode::kSuccess;
 }
 
-ErrorCode FileFS::RemoveDirectory(const char *path_cstr) override {
+ErrorCode LinFS::RemoveDirectory(const char *path_cstr) override {
   ErrorCode error_code;
 
   Path path = Path::Normalize(path_cstr, error_code);
@@ -196,7 +196,7 @@ ErrorCode FileFS::RemoveDirectory(const char *path_cstr) override {
   return ErrorCode::kSuccess;
 }
 
-const char* FileFS::ListDirectory(const char *path_cstr, const char *prev,
+const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
                           char *next_buf, ErrorCode& error_code) override {
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
@@ -213,6 +213,6 @@ const char* FileFS::ListDirectory(const char *path_cstr, const char *prev,
   return next_buf;
 }
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

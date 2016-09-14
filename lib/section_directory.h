@@ -7,7 +7,7 @@
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class SectionDirectory : Section {
  public:
@@ -30,6 +30,6 @@ class SectionDirectory : Section {
   bool HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code);
 };
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs
