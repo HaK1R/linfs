@@ -6,9 +6,9 @@
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
 #include "lib/reader_writer.h"
-#include "lib/section.h"
+#include "lib/sections/section.h"
+#include "lib/sections/section_directory.h"
 #include "lib/section_allocator.h"
-#include "lib/section_directory.h"
 
 namespace fs {
 

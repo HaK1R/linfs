@@ -7,8 +7,8 @@
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
 #include "lib/reader_writer.h"
+#include "lib/sections/section_file.h"
 #include "lib/section_allocator.h"
-#include "lib/section_file.h"
 
 namespace fs {
 

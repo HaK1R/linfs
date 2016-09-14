@@ -10,7 +10,7 @@
 
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
-#include "lib/section.h"
+#include "lib/sections/section.h"
 
 namespace fs {
 
