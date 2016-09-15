@@ -6,7 +6,7 @@ namespace fs {
 
 namespace ffs {
 
-ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, uint64_t& cluster_size, uint16_t& none_entry_offset, uint16_t& root_section_offset, uint64_t& total_clusters) {
+ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, Header& header) {
   Header from_file = reader->Read<DeviceLayout::Header>(0, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
@@ -20,11 +20,8 @@ ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, uint64_t& cluster_size
       from_file.version.minor > default_header.version.minor)
     return ErrorCode::kErrorVersionNotSupported;
 
-  cluster_size = 1 << from_file.section_size_log2;
   // TODO fix endianness
-  none_entry_offset = from_file.none_entry_offset;
-  root_section_offset = from_file.root_section_offset;
-  total_clusters = from_file.total_clusters;
+  header = from_file;
   return ErrorCode::kSuccess;
 }
 

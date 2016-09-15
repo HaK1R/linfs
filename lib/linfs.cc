@@ -55,52 +55,46 @@ LinFS::Load(const char *device_path) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  // TODO? DeviceLayout::Header header;
-  uint64_t cluster_size, total_clusters;
-  uint16_t none_entry_offset, root_section_offset;
-  error_code = DeviceLayout::ParseHeader(&accessor_, cluster_size,
-                                         none_entry_offset,
-                                         root_entry_offset,
-                                         total_clusters,
-                                         error_code);
+  DeviceLayout::Header header;
+  error_code = DeviceLayout::ParseHeader(&accessor_, header, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  std::unique_ptr<NoneEntry> none_entry = accessor_.LoadEntry(none_entry_offset, error_code);
+  std::unique_ptr<NoneEntry> none_entry = accessor_.LoadEntry(header.none_entry_offset, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
-  allocator_ = std::make_unique<SectionAllocator>(cluster_size, total_clusters, std::move(none_entry));
+  allocator_ = std::make_unique<SectionAllocator>((1 << header.cluster_size),
+                                                  header.total_clusters, std::move(none_entry));
 
-  root_entry_ = accessor_.LoadEntry(root_entry_offset, error_code);
+  root_entry_ = accessor_.LoadEntry(header.root_entry_offset, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 }
 
 int LinFS::Format(const char *device_path, ClusterSize cluster_size) {
-  // Used only to calculate offsets
-  struct __attribute__((packed)) EmptyLayout {
-    DeviceLayout::Header device_header;
-    EntryLayout::NoneHeader none_entry_header;
-    struct __attribute__((packed)) {
-      SectionLayout::Header section_header;
-      EntryLayout::DirectoryHeader entry_header;
-    } root;
-  };
-  static_assert(std::is_standard_layout<EmptyDiskData>::value,
-                "EmptyLayout must be a standard-layout class");
-
   ReaderWriter writer;
   ErrorCode error_code = writer.Open(device_path, std::ios_base::out | std::ios_base::trunc);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
+  DeviceLayout::Header header(cluster_size);
+  error_code = DeviceLayout::Write(writer, header);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+  //DeviceLayout::Body body(header);
 
-  error_code = DeviceLayout::Write(writer, ClusterSize::k4Kb,
-                                   offsetof(EmptyLayout, none_entry_header),
-                                   offsetof(EmptyLayout, root));
-  NoneEntry::Create(offsetof(EmptyLayout, none_entry_header), &writer, error_code, 0);
-  writer->Write(Section(offsetof(EmptyLayout, root), (1 << ClusterSize::k4Kb) - offsetof(EmptyLayout, root), 0).Save(writer);
-  DirectoryEntry::Create(root_section, error_code, 0);
+  NoneEntry::Create(header.none_entry_offset, &writer, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  error_code = writer->SaveSection(Section(sizeof header + offsetof(DeviceLayout::Body, root),
+                                           (1 << cluster_size) - sizeof header - offsetof(DeviceLayout::Body, root), 0));
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  DirectoryEntry::Create(header.root_entry_offset, error_code, 0);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
 
   return ErrorCode::kSuccess;
 }

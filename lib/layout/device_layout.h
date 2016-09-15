@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <fstream>
 
 namespace fs {
 
@@ -10,6 +9,8 @@ namespace ffs {
 class DeviceLayout {
   static_assert(std::is_trivially_copyable<Header>::value,
                 "DeviceLayout::Header isn't trivially copyable");
+  static_assert(std::is_standard_layout<Body>::value,
+                "DeviceLayout::Body must be a standard-layout type");
  public:
   struct __attribute__((packed, aligned(8))) Header {
     char identifier[8] = {'\0', 'f', 'i', 'l', 'e', 'f', 's', '='};  // fs code
@@ -20,15 +21,23 @@ class DeviceLayout {
     uint8_t cluster_size_log2;    // 2^n is actual cluster size
     uint8_t reserved0 = {0};      // reserved for future usage (but actually I'm
                                   // worry about alignment on ARM/SPARC etc.)
-    uint16_t none_entry_offset;   // location of none entry in the file
-    uint16_t root_entry_offset;   // location of "/" entry
+    uint16_t none_entry_offset =  // location of none entry in the file
+        sizeof(Header) + offsetof(Body, none_entry);
+    uint16_t root_entry_offset =  // location of "/" entry
+        sizeof(Header) + offsetof(Body, root.entry);
     uint64_t total_clusters = 1;  // total number of allocated clusters
   };
 
-  static ErrorCode ParseHeader(ReaderWriter* reader, uint64_t& cluster_size,
-                               uint16_t& none_entry_offset,
-                               uint16_t& root_section_offset,
-                               uint64_t& total_clusters);
+  // The device's body looks as follows, and used only to calculate offsets:
+  struct __attribute__((packed)) Body {
+    EntryLayout::NoneHeader none_entry;
+    struct __attribute__((packed)) {
+      SectionLayout::Header section;
+      EntryLayout::DirectoryHeader entry;
+    } root;
+  };
+
+  static ErrorCode ParseHeader(ReaderWriter* reader, Header& header);
 };
 
 // TODO? ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);
