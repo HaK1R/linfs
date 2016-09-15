@@ -19,6 +19,8 @@ class SectionAllocator {
       : cluster_size_(cluster_size), total_clusters_(total_clusters), none_entry_(std::move(none_entry)) {}
   SectionAllocator(const SectionAllocator&) = delete;
 
+  // Allocates section of a preferred |size|.
+  // Note that the size of the allocated section may be less than |size|.
   template<typename T = Section>
   T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
     if (none_entry_->HasSections()) {
@@ -37,8 +39,8 @@ class SectionAllocator {
     return section;
   }
 
-  void ReleaseSection(const Section& section, ReaderWriter* reader_writer, ErrorCode& error_code);
   void ReleaseSection(const Section& section, ReaderWriter* reader_writer);
+  void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
 
  private:
   const uint64_t cluster_size_ = 0;

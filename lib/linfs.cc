@@ -23,7 +23,7 @@ LinFS::Release() {
 
 template<typename T>
 std::unique_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
-  Section place = allocator_->AllocateSection(error_code);
+  Section place = allocator_->AllocateSection(1, &accessor, error_code);
   if (error_code != ErrorCode::kSuccess) return nullptr;
 
   std::unique_ptr<T> entry = T::Create(place.data_offset(), &accessor_, error_code, std::forward<Args>(args)...);
@@ -33,7 +33,7 @@ std::unique_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args
 }
 
 void LinFS::ReleaseEntry(std::shared_ptr<Entry> entry) {
-  allocate_.ReleaseSection(Section(entry->section_offset(), cluster_size_, 0));
+  allocate_.ReleaseSection(entry->section_offset(), &accessor_);
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
