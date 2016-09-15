@@ -34,14 +34,14 @@ class LinFS : public IFileSystem {
                             char *next_buf, ErrorCode& error_code) override;
 
  private:
-  template<typename T> std::shared_ptr<T> AllocateEntry<T>(ErrorCode& error_code, Args&&... args);
+  template<typename T> std::unique_ptr<T> AllocateEntry<T>(ErrorCode& error_code, Args&&... args);
   void ReleaseEntry(std::shared_ptr<Entry> entry);
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
 
   ReaderWriter accessor_;
-  SectionAllocator allocator_;
-  std::shared_ptr<DirectoryEntry> root_entry_;
+  std::unique_ptr<SectionAllocator> allocator_;
+  std::unique_ptr<DirectoryEntry> root_entry_;
 };
 
 }  // namespace linfs

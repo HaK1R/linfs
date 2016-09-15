@@ -16,13 +16,12 @@ namespace linfs {
 
 class DirectoryEntry : public Entry {
  public:
-  static std::shared_ptr<DirectoryEntry> Create(const Section& place,
-                                                ReaderWriter* reader_writer,
+  static std::unique_ptr<DirectoryEntry> Create(uint64_t base_offset,
+                                                ReaderWriter* writer,
                                                 ErrorCode& error_code,
                                                 const char *name);
 
-  DirectoryEntry(uint64_t base_offset)
-      : Entry(Type::kDirectory, base_offset) {}
+  DirectoryEntry(uint64_t base_offset) : Entry(Type::kDirectory, base_offset) {}
   ~DirectoryEntry() override {}
 
   ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer, SectionAllocator* allocator);

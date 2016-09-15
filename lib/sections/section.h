@@ -17,10 +17,6 @@ class Section {
   Section(uint64_t base_offset, uint64_t size, uint64_t next_offset)
       : base_offset_(base_offset), size_(size), next_offset_(next_offset) {}
 
-  // TODO? remove
-  //Section(const Section& section) = delete;
-  //void operator=(const Section& section) = delete;
-
   uint64_t base_offset() const { return base_offset_; }
   uint64_t size() const { return size_; }
   uint64_t next_offset() const { return next_offset_; }

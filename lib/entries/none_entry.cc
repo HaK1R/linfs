@@ -4,14 +4,14 @@ namespace fs {
 
 namespace linfs {
 
-std::shared_ptr<NoneEntry> NoneEntry::Create(uint64_t base_offset,
+std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t base_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code) {
   error_code = device.Write(EntryLayout::NoneHeader(Entry::Type::kNone, 0), base_offset);
   if (error_code != ErrorCode::kSuccess)
-    return std::shared_ptr<NoneEntry>();
+    return nullptr;
 
-  return std::make_shared<NoneEntry>(base_offset, 0);
+  return std::make_unique<NoneEntry>(base_offset, 0);
 }
 
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {

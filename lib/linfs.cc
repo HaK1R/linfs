@@ -22,14 +22,14 @@ LinFS::Release() {
 }
 
 template<typename T>
-std::shared_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
-  Section place = allocator_.AllocateSection(error_code);
-  if (error_code != ErrorCode::kSuccess) return error_code;
+std::unique_ptr<T> LinFS::AllocateEntry<T>(ErrorCode& error_code, Args&&... args) {
+  Section place = allocator_->AllocateSection(error_code);
+  if (error_code != ErrorCode::kSuccess) return nullptr;
 
-  std::shared_ptr<T> entry = T::Create(place, error_code, std::forward<Args>(args)...);
+  std::unique_ptr<T> entry = T::Create(place.data_offset(), &accessor_, error_code, std::forward<Args>(args)...);
   if (!entry)
     allocate_.ReleaseSection(place);
-  return error_code;
+  return entry;
 }
 
 void LinFS::ReleaseEntry(std::shared_ptr<Entry> entry) {
@@ -58,7 +58,7 @@ LinFS::Load(const char *device_path) {
   // TODO? DeviceLayout::Header header;
   uint64_t cluster_size, total_clusters;
   uint16_t none_entry_offset, root_section_offset;
-  error_code = DeviceLayout::ParseHeader(&accessor_, cluster_size_,
+  error_code = DeviceLayout::ParseHeader(&accessor_, cluster_size,
                                          none_entry_offset,
                                          root_entry_offset,
                                          total_clusters,
@@ -66,17 +66,14 @@ LinFS::Load(const char *device_path) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  std::shared_ptr<NoneEntry> none_entry = accessor_.LoadEntry(none_entry_offset_, error_code);
+  std::unique_ptr<NoneEntry> none_entry = accessor_.LoadEntry(none_entry_offset, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
-
-  allocator_ = SectionAllocator(cluster_size, total_clusters, std::move(none_entry));
+  allocator_ = std::make_unique<SectionAllocator>(cluster_size, total_clusters, std::move(none_entry));
 
   root_entry_ = accessor_.LoadEntry(root_entry_offset, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
-  // TODO? accessor_.StreamReader(error_code, none_entry_offset) >> none_entry_;
-  // TODO? root_entry_.StreamReader(error_code, root_entry_offset) >> root_entry_;
 }
 
 int LinFS::Format(const char *device_path, ClusterSize cluster_size) {
@@ -90,31 +87,20 @@ int LinFS::Format(const char *device_path, ClusterSize cluster_size) {
     } root;
   };
   static_assert(std::is_standard_layout<EmptyDiskData>::value,
-                "EmptyDiskData must be a standard-layout class");
-  static EmptyDiskData data = {
-      DeviceLayout::Header(ClusterSize::k4Kb,
-                           offsetof(EmptyDiskData, none_entry_header),
-                           offsetof(EmptyDiskData, root)),
-      EntryLayout::NoneHeader(0),
-      {SectionLayout::Header((1 << ClusterSize::k4Kb) - offsetof(EmptyDiskData, root), 0),
-       EntryLayout::DirectoryHeader("/")}
-  };
+                "EmptyLayout must be a standard-layout class");
 
-  ErrorCode error_code;
   ReaderWriter writer;
-  error_code = writer.Open(device_path, std::ios_base::out | std::ios_base::trunc);
+  ErrorCode error_code = writer.Open(device_path, std::ios_base::out | std::ios_base::trunc);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
+
 
   error_code = DeviceLayout::Write(writer, ClusterSize::k4Kb,
                                    offsetof(EmptyLayout, none_entry_header),
                                    offsetof(EmptyLayout, root));
-  std::shared_ptr<NoneEntry> none_entry = NoneEntry::Create(offsetof(EmptyLayout, none_entry_header), error_code, 0);
-
-  Section root_section(offsetof(EmptyLayout, root), (1 << ClusterSize::k4Kb) - offsetof(EmptyLayout, root), 0);
-  error_code = writer->SaveSection(root_section);
-
-  std::shared_ptr<DirectoryEntry> root_entry = DirectoryEntry::Create(root_section, error_code, 0);
+  NoneEntry::Create(offsetof(EmptyLayout, none_entry_header), &writer, error_code, 0);
+  writer->Write(Section(offsetof(EmptyLayout, root), (1 << ClusterSize::k4Kb) - offsetof(EmptyLayout, root), 0).Save(writer);
+  DirectoryEntry::Create(root_section, error_code, 0);
 
   return ErrorCode::kSuccess;
 }
@@ -143,7 +129,7 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) override {
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
-  IFile* file = new (std::nothrow) FileImpl(file_entry, &accessor_, &allocator_);
+  IFile* file = new (std::nothrow) FileImpl(file_entry, &accessor_, allocator_.get());
   if (file == nullptr)
     error_code = ErrorCode::kErrorNoMemory;
 

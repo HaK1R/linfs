@@ -6,15 +6,15 @@ namespace fs {
 
 namespace linfs {
 
-std::shared_ptr<FileEntry> FileEntry::Create(const Section& section,
+std::unique_ptr<FileEntry> FileEntry::Create(uint64_t base_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code,
                                              const char *name) {
-  error_code = writer->Write(EntryLayout::FileHeader(Entry::Type::kFile, 0, name), section.data_offset());
+  error_code = writer->Write(EntryLayout::FileHeader(Entry::Type::kFile, 0, name), base_offset);
   if (error_code != ErrorCode::kSuccess)
-    return std::shared_ptr<FileEntry>();
+    return nullptr;
 
-  return std::make_shared<FileEntry>(section.data_offset(), 0);
+  return std::make_unique<FileEntry>(base_offset, 0);
 }
 
 SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code) {

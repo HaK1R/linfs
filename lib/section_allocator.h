@@ -14,12 +14,10 @@ namespace linfs {
 
 class SectionAllocator {
  public:
-  SectionAllocator() = default;
-  SectionAllocator(uint64_t cluster_size, uint64_t total_clusters, std::shared_ptr<NoneEntry> none_entry)
+  SectionAllocator() = delete;
+  SectionAllocator(uint64_t cluster_size, uint64_t total_clusters, std::unique_ptr<NoneEntry> none_entry)
       : cluster_size_(cluster_size), total_clusters_(total_clusters), none_entry_(std::move(none_entry)) {}
   SectionAllocator(const SectionAllocator&) = delete;
-  SectionAllocator(SectionAllocator&&) = default;
-  ~SectionAllocator() = default;
 
   template<typename T = Section>
   T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
@@ -45,8 +43,7 @@ class SectionAllocator {
  private:
   const uint64_t cluster_size_ = 0;
   uint64_t total_clusters_ = 0;
-  // TODO unique_ptr
-  std::shared_ptr<NoneEntry> none_entry_;
+  std::unique_ptr<NoneEntry> none_entry_;
 };
 
 }  // namespace linfs

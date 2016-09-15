@@ -117,7 +117,7 @@ class ReaderWriter {
   }
   ErrorCode SaveSection(Section section);
 
-  std::shared_ptr<Entry> LoadEntry(uint64_t offset, ErrorCode& error_code);
+  std::unique_ptr<Entry> LoadEntry(uint64_t offset, ErrorCode& error_code);
 
  private:
   std::fstream device_;

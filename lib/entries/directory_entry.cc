@@ -6,21 +6,16 @@ namespace fs {
 
 namespace linfs {
 
-std::shared_ptr<DirectoryEntry> DirectoryEntry::Create(const Section& section,
+std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t base_offset,
                                                        ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
-  error_code = writer->Write(EntryLayout::DirectoryHeader(Entry::Type::kDirectory, name), section.data_offset());
+  error_code = writer->Write(EntryLayout::DirectoryHeader(Entry::Type::kDirectory, name), base_offset);
   if (error_code != ErrorCode::kSuccess)
-    return std::shared_ptr<DirectoryEntry>();
+    return nullptr;
 
-  return make_shared<DirectoryEntry>(section.data_offset());
+  return std::make_unique<DirectoryEntry>(base_offset);
 }
-
-DirectoryEntry::DirectoryEntry(uint64_t base_offset)
-  : Section(Type::kDirectory, base_offset) {}
-
-DirectoryEntry::~DirectoryEntry() override {}
 
 ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
                                    ReaderWriter* reader_writer,

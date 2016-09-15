@@ -52,21 +52,21 @@ ErrorCode ReaderWriter::SaveSection(Section section) {
   return Write<SectionLayout::Header>(header, section.base_offset());
 }
 
-std::shared_ptr<Entry> ReaderWriter::LoadEntry(uint64_t offset, ErrorCode& error_code) {
+std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t offset, ErrorCode& error_code) {
   EntryLayout::HeaderUnion entry_header = Read<EntryLayout::HeaderUnion>(offset, error_code);
   // TODO check endianness
   switch (static_cast<Entry::Type>(entry_header.common.type)) {
     case Entry::Type::kNone:
-      return std::make_shared<NoneEntry>(offset, entry_header.none.head_offset);
+      return std::make_unique<NoneEntry>(offset, entry_header.none.head_offset);
     case Entry::Type::kDirectory:
-      return std::make_shared<DirectoryEntry>(offset, std::string(entry_header.directory.name,
+      return std::make_unique<DirectoryEntry>(offset, std::string(entry_header.directory.name,
                                                                   sizeof entry_header.directory.name));
     case Entry::Type::File:
-      return std::make_shared<FileEntry>(offset, entry_header.file.size,
+      return std::make_unique<FileEntry>(offset, entry_header.file.size,
                                          std::string(entry_header.file.name,
                                                      sizeof entry_header.file.name));
   }
-  return std::make_shared<Entry>();
+  return nullptr;
 }
 
 }  // namespace linfs

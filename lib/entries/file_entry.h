@@ -16,7 +16,7 @@ namespace linfs {
 
 class FileEntry : public Entry {
  public:
-  static std::shared_ptr<FileEntry> Create(const Section& section,
+  static std::unique_ptr<FileEntry> Create(uint64_t base_offset,
                                            ReaderWriter* writer,
                                            ErrorCode& error_code,
                                            const char *name);
