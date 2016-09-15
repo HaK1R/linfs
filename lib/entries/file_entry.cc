@@ -6,15 +6,15 @@ namespace fs {
 
 namespace linfs {
 
-std::unique_ptr<FileEntry> FileEntry::Create(uint64_t base_offset,
+std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code,
                                              const char *name) {
-  error_code = writer->Write(EntryLayout::FileHeader(Entry::Type::kFile, 0, name), base_offset);
+  error_code = writer->Write(EntryLayout::FileHeader(Entry::Type::kFile, 0, name), entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
-  return std::make_unique<FileEntry>(base_offset, 0);
+  return std::make_unique<FileEntry>(entry_offset, 0);
 }
 
 SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code) {

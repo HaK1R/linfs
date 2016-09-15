@@ -6,15 +6,15 @@ namespace fs {
 
 namespace linfs {
 
-std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t base_offset,
+std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
                                                        ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
-  error_code = writer->Write(EntryLayout::DirectoryHeader(Entry::Type::kDirectory, name), base_offset);
+  error_code = writer->Write(EntryLayout::DirectoryHeader(Entry::Type::kDirectory, name), entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
-  return std::make_unique<DirectoryEntry>(base_offset);
+  return std::make_unique<DirectoryEntry>(entry_offset);
 }
 
 ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,

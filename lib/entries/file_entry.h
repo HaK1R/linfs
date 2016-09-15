@@ -16,7 +16,7 @@ namespace linfs {
 
 class FileEntry : public Entry {
  public:
-  static std::unique_ptr<FileEntry> Create(uint64_t base_offset,
+  static std::unique_ptr<FileEntry> Create(uint64_t entry_offset,
                                            ReaderWriter* writer,
                                            ErrorCode& error_code,
                                            const char *name);
