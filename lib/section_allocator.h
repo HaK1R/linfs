@@ -17,14 +17,15 @@ class SectionAllocator {
   SectionAllocator() = delete;
   SectionAllocator(uint64_t cluster_size, uint64_t total_clusters, std::unique_ptr<NoneEntry> none_entry)
       : cluster_size_(cluster_size), total_clusters_(total_clusters), none_entry_(std::move(none_entry)) {}
-  SectionAllocator(const SectionAllocator&) = delete;
 
   // Allocates section of a preferred |size|.
   // Note that the size of the allocated section may be less than |size|.
   template<typename T = Section>
   T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
     if (none_entry_->HasSections()) {
-      return none_entry_->GetSection(size, reader_writer, error_code);
+      // FIXME compile
+      Section section = none_entry_->GetSection(size, reader_writer, error_code);
+      return *static_cast<T*>(&section);
     }
 
     // There is nothing in NoneEntry chain. Allocate a new cluster.
@@ -43,8 +44,8 @@ class SectionAllocator {
   void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
 
  private:
-  const uint64_t cluster_size_ = 0;
-  uint64_t total_clusters_ = 0;
+  const uint64_t cluster_size_;
+  uint64_t total_clusters_;
   std::unique_ptr<NoneEntry> none_entry_;
 };
 

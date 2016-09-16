@@ -5,11 +5,12 @@
 
 #include "fs/error_code.h"
 #include "lib/layout/section_layout.h"
-#include "lib/reader_writer.h"
 
 namespace fs {
 
 namespace linfs {
+
+class ReaderWriter;
 
 class Section {
  public:
@@ -27,11 +28,15 @@ class Section {
   ErrorCode Clear(ReaderWriter* reader_writer);
 
  protected:
+  // TODO? use methods instead of entire classes
+  friend class DirectoryEntry;
+  friend class FileEntry;
+  friend class NoneEntry;
   ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer);
   ErrorCode SetNext(uint64_t next_offset, ReaderWriter* reader_writer);
 
  private:
-  const uint64_t base_offset_;
+  /*TODO? const*/uint64_t base_offset_;
   uint64_t size_;
   uint64_t next_offset_;
 };

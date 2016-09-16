@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring> // TDOO remove
 #include <fstream>
 #include <ios>
 #include <iterator>
@@ -28,7 +29,8 @@ class ReaderWriter {
   template<typename T>
   T Read(uint64_t offset, ErrorCode& error_code) {
     // TODO Check that it's for ints
-    T value = 0;
+    T value;
+    memset(&value, 0, sizeof value); // TODO compile remove it;
 
     device_.seekg(offset);
     if (!device_.good()) {
@@ -37,7 +39,9 @@ class ReaderWriter {
     }
 
     // TODO check endianness
-    device_.read(value, sizeof value);
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "T must be a trivially copyable type");
+    device_.read(reinterpret_cast<char*>(&value), sizeof value);
     if (!device_.good()) {
       error_code = ErrorCode::kErrorInputOutput;
       return value;
@@ -52,28 +56,35 @@ class ReaderWriter {
   // TODO? Distance=uint64_t
   class ReadIterator : public std::iterator<std::input_iterator_tag,
                                             T, uint64_t, const T*, const T&> {
+    using _Base = std::iterator<std::input_iterator_tag, T, uint64_t, const T*, const T&>;
    public:
+    using value_type = typename _Base::value_type;
+    using reference = typename _Base::reference;
+    using pointer = typename _Base::pointer;
+
     ReadIterator(uint64_t position) : position_(position) {}
     ReadIterator(uint64_t position, ReaderWriter* reader, ErrorCode& error_code)
         : position_(position - sizeof(value_type)), reader_(reader), error_code_(&error_code) {
       ++*this;
     }
+    uint64_t position() const { return position_; }
     bool operator==(const ReadIterator& that) {
       return position_ == that.position_;
     }
+    bool operator!=(const ReadIterator& that) { return !(*this == that); }
     reference operator*() const { return value_; }
     pointer operator->() const { return &value_; }
     ReadIterator& operator++() {
       if (reader_) {
         position_ += sizeof(value_type);
-        value_ = reader_->Read<value_type>(position_, *error_code);
-        if (*error_code != ErrorCode::kSuccess)
+        value_ = reader_->Read<value_type>(position_, *error_code_);
+        if (*error_code_ != ErrorCode::kSuccess)
           reader_ = nullptr;
       }
       return *this;
     }
-    ReaderIterator operator++(int) {
-      ReaderIterator tmp = *this;
+    ReadIterator operator++(int) {
+      ReadIterator tmp = *this;
       ++*this;
       return tmp;
     }
@@ -87,13 +98,15 @@ class ReaderWriter {
 
   // TODO rename to position
   template<typename T>
-  ErrorCode Write(T value, uint64_t offset) {
+  ErrorCode Write(const T& value, uint64_t offset) {
     device_.seekp(offset);
     if (!device_.good())
       return ErrorCode::kErrorInputOutput;
 
     // TODO check endianness
-    device_.write(&value, sizeof value);
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "T must be a trivially copyable type");
+    device_.write(reinterpret_cast<const char *>(&value), sizeof value);
     if (!device_.good())
       return ErrorCode::kErrorInputOutput;
 
@@ -108,7 +121,8 @@ class ReaderWriter {
   //                         ReadIterator(pos + len));
   //}
 
-  template<typename T = Section>
+  template<typename T = Section, typename... Args>
+  // TODO? rename to section_offset
   T LoadSection(uint64_t offset, ErrorCode& error_code, Args&&... args) {
     static_assert(std::is_same<T, Section>::value ||
                   std::is_base_of<Section, T>::value, "T must be derived from Section");
@@ -117,7 +131,8 @@ class ReaderWriter {
   }
   ErrorCode SaveSection(Section section);
 
-  std::unique_ptr<Entry> LoadEntry(uint64_t offset, ErrorCode& error_code);
+  // TODO? rename to entry_offset
+  std::unique_ptr<Entry> LoadEntry(uint64_t offset, ErrorCode& error_code, char* entry_name = nullptr);
 
  private:
   std::fstream device_;

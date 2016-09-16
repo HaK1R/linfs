@@ -10,7 +10,8 @@ std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code,
                                              const char *name) {
-  error_code = writer->Write(EntryLayout::FileHeader(Entry::Type::kFile, 0, name), entry_offset);
+  // TODO? use brace-enclosed initializer list
+  error_code = writer->Write(EntryLayout::FileHeader(0, name), entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
@@ -20,21 +21,21 @@ std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
 SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code) {
   SectionFile sec_file = reader_writer->LoadSection<SectionFile>(section_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
-    return SectionFile();
+    return SectionFile{0,0,0}; // TODO compile
 
   cursor += sizeof(EntryLayout::FileHeader);
   while (cursor > sec_file.data_size() && sec_file.next_offset()) {
     cursor -= sec_file.data_size();
     sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
-      return SectionFile();
+      return SectionFile{0,0,0};
   }
 
   if (cursor < sec_file.data_size())
     return sec_file;
 
   error_code = ErrorCode::kErrorNoData;
-  return SectionFile();
+  return SectionFile{0,0,0};
 }
 
 size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code) {

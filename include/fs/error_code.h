@@ -24,8 +24,9 @@ enum class ErrorCode : uint8_t {
   kErrorDirectoryNotEmpty,  // error: directory not empty
 
   // File errors:
-  // TODO? remove this
+  // TODO? remove these
   kErrorNoData,             // error: no data
+  kErrorBrokenFile,         // error: file entry is broken
 };
 
 }  // namespace fs

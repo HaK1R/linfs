@@ -1,1 +1,6 @@
+# build artifacts
+*.o
+liblinfs.so
+
+# for vim users
 *.swp

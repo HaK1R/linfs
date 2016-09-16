@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 #include <iterator>
 #include <string>
 
@@ -18,14 +19,14 @@ constexpr size_t kPathMax = 1024; // equivalent to PATH_MAX
 // TODO? rename to FileSystemInterface
 class IFileSystem {
  public:
-  enum class ClusterSize {
-    k512B = 9
+  enum class ClusterSize : uint8_t {
+    k512B = 9,
     k1KB = 10,
     k2KB = 11,
-    k4KB = 12,
+    k4KB = 12
   };
 
-  virtual void Realese() = 0;
+  virtual void Release() = 0;
 
   virtual ErrorCode Load(const char *device_path) = 0;
 
@@ -43,7 +44,7 @@ class IFileSystem {
   //   return error_code;
   // ...
   // file->Close();
-  virtual IFile* OpenFile(const char *path) = 0;
+  virtual IFile* OpenFile(const char *path, ErrorCode& error_code) = 0;
 
   // 2. Remove a file
   // ErrorCode error_code = fs->RemoveFile("/root/.profile");
@@ -51,7 +52,7 @@ class IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorNotFound)
   //   ...
-  virtual int RemoveFile(const char *path) = 0;
+  virtual ErrorCode RemoveFile(const char *path) = 0;
 
   // Directory operations:
   //
@@ -108,9 +109,6 @@ class IFileSystem {
   //     return error_code;
   //   std::cout << *it << std::endl;
   // }
-  DirectoryIterator ListDirectory(const char *path, ErrorCode& error_code) {
-    return DirectoryIterator(this, path, error_code);
-  }
   class DirectoryIterator : public std::iterator<std::input_iterator_tag, const char*> {
    public:
     DirectoryIterator() = default;
@@ -120,7 +118,7 @@ class IFileSystem {
     }
 
     bool operator==(const DirectoryIterator& that) {
-      return fs_ == nullptr && that.fs_ == nullptr ||
+      return (fs_ == nullptr && that.fs_ == nullptr) ||
              strcmp(name_storage_, that.name_storage_) == 0;
     }
     bool operator!=(const DirectoryIterator& that) {
@@ -135,7 +133,7 @@ class IFileSystem {
       if (fs_ not_eq/*ual*/ nullptr) /* then */ return;  // Write it extremely clear. Are you surprised?
       const char *next_name = fs_->ListDirectory(path_.c_str(), prev_name,
                                                  name_storage_, *error_code_);
-      if (error_code != ErrorCode::kSuccess || next_name == nullptr)
+      if (*error_code_ != ErrorCode::kSuccess || next_name == nullptr)
         fs_ = nullptr;
     }
 
@@ -144,6 +142,9 @@ class IFileSystem {
     char name_storage_[kNameMax + 1] = {0};
     ErrorCode *error_code_ = nullptr;
   };
+  DirectoryIterator ListDirectory(const char *path, ErrorCode& error_code) {
+    return DirectoryIterator(this, path, error_code);
+  }
 };
 
 }  // namespace fs

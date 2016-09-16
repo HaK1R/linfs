@@ -3,6 +3,8 @@
 #include <string>
 #include <utility>
 
+#include "fs/error_code.h"
+
 namespace fs {
 
 namespace linfs {
@@ -23,13 +25,14 @@ class Path {
     return LastName(std::forward<Args>(args)...);
   }
   template <typename... Args>
-  auto DirectoryName(Args&&... args) -> decltype(DirectoryName(std::forward<Args>(args)...)) {
+  auto DirectoryName(Args&&... args) -> decltype(ExceptLastName(std::forward<Args>(args)...)) {
     return ExceptLastName(std::forward<Args>(args)...);
   }
 
  private:
   Path() = default;
-  explicit Path(const char *path_cstr) : data_(path_cstr) {}
+  explicit Path(const char* path_cstr) : data_(path_cstr) {}
+  explicit Path(std::string&& path) : data_(std::move(path)) {}
 
   std::string data_;
 };

@@ -1,5 +1,7 @@
 #include "lib/entries/none_entry.h"
 
+#include "lib/layout/entry_layout.h"
+
 namespace fs {
 
 namespace linfs {
@@ -7,7 +9,8 @@ namespace linfs {
 std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code) {
-  error_code = device.Write(EntryLayout::NoneHeader(Entry::Type::kNone, 0), entry_offset);
+  // TODO? use brace-enclosed initializer list
+  error_code = writer->Write(EntryLayout::NoneHeader(0), entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
@@ -16,26 +19,26 @@ std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
 
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
   if (!HasSections())
-    return Section(); // TODO throw?
+    return Section{0,0,0}; // TODO throw?
 
   Section head = reader_writer->LoadSection(head_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
-    return Section();
+    return Section{0,0,0};
 
   if (head.size() > max_size) {
     Section result(head.base_offset() + head.size() - max_size, max_size, 0);
     error_code = reader_writer->SaveSection(result);
     if (error_code != ErrorCode::kSuccess)
-      return Section();
+      return Section{0,0,0};
     error_code = head.SetSize(head.size() - max_size, reader_writer);
     if (error_code != ErrorCode::kSuccess)
-      return Section();
+      return Section{0,0,0};
     return result;
   }
   else {
     error_code = SetHead(head.next_offset(), reader_writer);
     if (error_code != ErrorCode::kSuccess)
-      return Section();
+      return Section{0,0,0};
     return head;
   }
 }
@@ -56,7 +59,7 @@ ErrorCode NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   return SetHead(section.base_offset(), reader_writer);
 }
 
-ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
+ErrorCode NoneEntry::SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
   ErrorCode error_code = reader_writer->Write<uint64_t>(head_offset,
                                         base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
   if (error_code == ErrorCode::kSuccess)

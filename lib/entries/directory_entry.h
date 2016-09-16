@@ -28,7 +28,8 @@ class DirectoryEntry : public Entry {
   ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,
                         ReaderWriter* reader_writer,
                         SectionAllocator* allocator);
-  std::shared_ptr<Entry> FindEntryByName(const char *entry_name,
+  bool HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code);
+  std::unique_ptr<Entry> FindEntryByName(const char *entry_name,
                                          ReaderWriter* reader_writer,
                                          ErrorCode& error_code,
                                          SectionDirectory* section_directory = nullptr,

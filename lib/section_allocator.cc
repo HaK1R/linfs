@@ -8,7 +8,7 @@ namespace fs {
 
 namespace linfs {
 
-void SectionAllocator::ReleaseSection(const Section& section_, ReaderWriter* reader_writer) {
+void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* reader_writer) {
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
   if (last_cluster_offset == section.base_offset()) {
     total_clusters_ -= section.size() / cluster_size_;

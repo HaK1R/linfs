@@ -1,20 +1,18 @@
-#include "lib/section.h"
+#include "lib/sections/section.h"
 
 #include "lib/layout/section_layout.h"
+#include "lib/reader_writer.h"
 
 namespace fs {
 
 namespace linfs {
 
 ErrorCode Section::Clear(ReaderWriter* reader_writer) {
-  uint64_t offset = section.base_offset() + sizeof(SectionLayout::Header);
-  uint64_t size = section.size() - sizeof(SectionLayout::Header);
-  while (size != 0) {
+  for (uint64_t offset = data_offset(), size = data_size();
+       size != 0; ++offset, --size) {
     ErrorCode error_code = reader_writer->Write<uint8_t>(0, offset);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
-    --size;
-    ++offset;
   }
   return ErrorCode::kSuccess;
 }

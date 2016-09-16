@@ -16,15 +16,17 @@ class Entry {
     kFile = 2        // entry's sections represent a file
   };
 
-  Entry(Type type, uint64_t base_offset)
-      : type_(type), base_offset_(base_offset) {}
-  virtual ~Entry() = 0;
+  virtual ~Entry() = default;
 
   // TODO? GetAsyncReader();
 
   Type type() const { return type_; }
   uint64_t base_offset() const { return base_offset_; }
   uint64_t section_offset() const { return base_offset() - sizeof(SectionLayout::Header); }
+
+ protected:
+  Entry(Type type, uint64_t base_offset)
+      : type_(type), base_offset_(base_offset) {}
 
  private:
   const Type type_;

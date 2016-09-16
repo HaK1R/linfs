@@ -1,18 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
+
+#include "fs/error_code.h"
+#include "fs/IFileSystem.h"
+#include "lib/layout/entry_layout.h"
+#include "lib/layout/section_layout.h"
+#include "lib/reader_writer.h"
 
 namespace fs {
 
-namespace ffs {
+namespace linfs {
 
 class DeviceLayout {
-  static_assert(std::is_trivially_copyable<Header>::value,
-                "DeviceLayout::Header isn't trivially copyable");
-  static_assert(std::is_standard_layout<Body>::value,
-                "DeviceLayout::Body must be a standard-layout type");
  public:
   struct __attribute__((packed, aligned(8))) Header {
+    Header() = default; // TODO? remove
+    Header(IFileSystem::ClusterSize cluster_size) : cluster_size_log2(static_cast<uint8_t>(cluster_size)) {}
+    // ---
     char identifier[8] = {'\0', 'f', 'i', 'l', 'e', 'f', 's', '='};  // fs code
     struct __attribute__((packed)) {
       uint8_t major = 0;
@@ -27,6 +33,11 @@ class DeviceLayout {
         sizeof(Header) + offsetof(Body, root.entry);
     uint64_t total_clusters = 1;  // total number of allocated clusters
   };
+  // TODO? update assert message; swap its arguments
+  static_assert(sizeof(Header::cluster_size_log2) == sizeof(IFileSystem::ClusterSize),
+                "DeviceLayout::Header requires ClusterSize be of size uint8_t");
+  static_assert(std::is_trivially_copyable<Header>::value,
+                "DeviceLayout::Header isn't trivially copyable");
 
   // The device's body looks as follows, and used only to calculate offsets:
   struct __attribute__((packed)) Body {
@@ -36,12 +47,15 @@ class DeviceLayout {
       EntryLayout::DirectoryHeader entry;
     } root;
   };
+  static_assert(std::is_standard_layout<Body>::value,
+                "DeviceLayout::Body must be a standard-layout type");
 
   static ErrorCode ParseHeader(ReaderWriter* reader, Header& header);
+  static ErrorCode WriteHeader(ReaderWriter* writer, Header header);
 };
 
 // TODO? ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);
 
-}  // namespace ffs
+}  // namespace linfs
 
 }  // namespace fs

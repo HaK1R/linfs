@@ -4,7 +4,7 @@
 //
 // For this occasion, I am going to describe the order of includes:
 // 1. The related .h file (if any)
-#include "linfs_factory.h"
+#include "fs/linfs_factory.h"
 
 // 2. C/C++ system files
 #include <new>
@@ -15,7 +15,7 @@
 namespace fs {
 
 IFileSystem* CreateLinFS(ErrorCode& error_code) {
-  IFileSystem* result = new (std::nothrow) LinFS;
+  IFileSystem* result = new (std::nothrow) linfs::LinFS;
   error_code = result != nullptr ? ErrorCode::kSuccess : ErrorCode::kErrorNoMemory;
   return result;
 }

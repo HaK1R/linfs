@@ -9,6 +9,7 @@ namespace linfs {
 Path Path::Normalize(const char *path_cstr, ErrorCode& error_code) {
   if (path_cstr[0] == '/')
     path_cstr++;
+  error_code = ErrorCode::kSuccess;
   return Path(path_cstr);
 }
 
@@ -38,7 +39,7 @@ Path Path::ExceptLastName() const {
   size_t it = data_.rfind('/');
   if (it == std::string::npos)
     return Path();
-  return std::string(data_, 0, it);
+  return Path(std::string(data_, 0, it));
 }
 
 }  // namespace linfs

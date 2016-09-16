@@ -1,4 +1,4 @@
-#include "lib/entries/directory_entry.h"
+#include "lib/reader_writer.h"
 
 #include <string>
 
@@ -26,7 +26,7 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode
   }
 
   device_.read(buf, buf_size);
-  if (!device_.good()) {
+  if (!device_.good())
     error_code = ErrorCode::kErrorInputOutput;
   return device_.gcount();
 }
@@ -48,23 +48,32 @@ size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset, Er
 }
 
 ErrorCode ReaderWriter::SaveSection(Section section) {
-  SectionLayout::Header header(section.size(), section.next_offset());
+  SectionLayout::Header header{section.size(), section.next_offset()};
   return Write<SectionLayout::Header>(header, section.base_offset());
 }
 
-std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t offset, ErrorCode& error_code) {
+std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t offset, ErrorCode& error_code, char* entry_name) {
   EntryLayout::HeaderUnion entry_header = Read<EntryLayout::HeaderUnion>(offset, error_code);
   // TODO check endianness
   switch (static_cast<Entry::Type>(entry_header.common.type)) {
     case Entry::Type::kNone:
-      return std::make_unique<NoneEntry>(offset, entry_header.none.head_offset);
+      return std::make_unique<NoneEntry>(offset, uint64_t(entry_header.none.head_offset));
     case Entry::Type::kDirectory:
-      return std::make_unique<DirectoryEntry>(offset, std::string(entry_header.directory.name,
-                                                                  sizeof entry_header.directory.name));
-    case Entry::Type::File:
-      return std::make_unique<FileEntry>(offset, entry_header.file.size,
+      // TODO? use std::string
+      if (entry_name != nullptr) {
+        strncpy(entry_name, entry_header.directory.name, sizeof entry_header.directory.name);
+        entry_name[sizeof entry_header.directory.name] = '\0';
+      }
+      return std::make_unique<DirectoryEntry>(offset/*, std::string(entry_header.directory.name,
+                                                                  sizeof entry_header.directory.name)*/);
+    case Entry::Type::kFile:
+      if (entry_name != nullptr) {
+        strncpy(entry_name, entry_header.file.name, sizeof entry_header.file.name);
+        entry_name[sizeof entry_header.file.name] = '\0';
+      }
+      return std::make_unique<FileEntry>(offset, uint64_t(entry_header.file.size)/*,
                                          std::string(entry_header.file.name,
-                                                     sizeof entry_header.file.name));
+                                                     sizeof entry_header.file.name)*/);
   }
   return nullptr;
 }

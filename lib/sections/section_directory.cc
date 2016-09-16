@@ -7,11 +7,11 @@ namespace linfs {
 ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position) {
   ErrorCode error_code;
   //std::tie(it, end) = reader_writer->ReadRange(data_offset() + start_position, data_size() - start_position, error_code);
-  for (Iterator it = EntriesBegin(start_position, reader_writer, error_code); it != EntriesEnd(); ++it) {
+  for (Iterator it = EntriesBegin(reader_writer, error_code, start_position); it != EntriesEnd(); ++it) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
     if (*it == 0) {
-      *it = entry_offset;
+      error_code = reader_writer->Write(entry_offset, it.position());
       return error_code;
     }
   }
@@ -21,11 +21,11 @@ ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader
 
 ErrorCode SectionDirectory::RemoveEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position) {
   ErrorCode error_code;
-  for (Iterator it = EntriesBegin(start_position, reader_writer, error_code); it != EntriesEnd(); ++it) {
+  for (Iterator it = EntriesBegin(reader_writer, error_code, start_position); it != EntriesEnd(); ++it) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
-    if (*it == 0) {
-      *it = entry_offset;
+    if (*it == entry_offset) {
+      error_code = reader_writer->Write(entry_offset, it.position());
       return error_code;
     }
   }
@@ -34,8 +34,7 @@ ErrorCode SectionDirectory::RemoveEntry(uint64_t entry_offset, ReaderWriter* rea
 }
 
 bool SectionDirectory::HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code, uint64_t start_position) {
-  ErrorCode error_code;
-  for (Iterator it = EntriesBegin(start_position, reader_writer, error_code); it != EntriesEnd(); ++it) {
+  for (Iterator it = EntriesBegin(reader_writer, error_code, start_position); it != EntriesEnd(); ++it) {
     if (error_code != ErrorCode::kSuccess)
       return false;
     if (*it != 0)

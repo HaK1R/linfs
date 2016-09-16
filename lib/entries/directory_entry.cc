@@ -10,7 +10,8 @@ std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
                                                        ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
-  error_code = writer->Write(EntryLayout::DirectoryHeader(Entry::Type::kDirectory, name), entry_offset);
+  // TODO? use brace-enclosed initializer list
+  error_code = writer->Write(EntryLayout::DirectoryHeader(name), entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
@@ -71,7 +72,7 @@ ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry,
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  sec_dir.RemoveEntry(entry->base_offset(), reader_writer, error_code, sizeof(EntryLayout::DirectoryHeader));
+  error_code = sec_dir.RemoveEntry(entry->base_offset(), reader_writer, sizeof(EntryLayout::DirectoryHeader));
   while (error_code == ErrorCode::kErrorNotFound && sec_dir.next_offset()) {
     SectionDirectory prev_sec_dir = sec_dir;
     sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
@@ -82,9 +83,9 @@ ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry,
     if (error_code == ErrorCode::kSuccess) {
       ErrorCode error_code_has_entries;
       bool has_entries = sec_dir.HasEntries(reader_writer, error_code_has_entries);
-      if (error_code_has_entries == ErrorCode::kSuccess && has_entries &&
+      if (error_code_has_entries == ErrorCode::kSuccess && !has_entries &&
           prev_sec_dir.SetNext(sec_dir.next_offset(), reader_writer) != ErrorCode::kSuccess)
-        allocator->ReleaseSection(next_sec_dir, reader_writer);
+        allocator->ReleaseSection(sec_dir, reader_writer);
       break;
     }
   }
@@ -92,28 +93,45 @@ ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry,
   return error_code;
 }
 
-std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
+bool DirectoryEntry::HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code) {
+  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset(), error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return false;
+
+  bool has_entries = sec_dir.HasEntries(reader_writer, error_code, sizeof(EntryLayout::DirectoryHeader));
+  while (error_code == ErrorCode::kSuccess && !has_entries && sec_dir.next_offset()) {
+    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return false;
+
+    has_entries = sec_dir.HasEntries(reader_writer, error_code);
+  }
+
+  return has_entries;
+}
+
+std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
                                                        ReaderWriter* reader_writer,
                                                        ErrorCode& error_code,
                                                        SectionDirectory* section_directory,
                                                        SectionDirectory::Iterator* iterator) {
   uint64_t start_position = sizeof(EntryLayout::DirectoryHeader);
-  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(sectiion_offset(), error_code);
+  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)
-    return std::shared_ptr<Entry>();
+    return nullptr;
 
   while (1) {
-    for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(start_position, reader_writer, error_code);
+    for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader_writer, error_code, start_position);
          it != sec_dir.EntriesEnd(); ++it) {
       if (error_code != ErrorCode::kSuccess)
-        return std::shared_ptr<Entry>();
+        return nullptr;
       if (*it == 0)
         continue;
       uint64_t it_offset = *it;
-      char it_name[kNameMax + 1];
-      std::shared_ptr<Entry> entry = reader_writer->LoadEntry(it_offset, it_name, error_code);
+      char it_name[kNameMax + 1] = {0}; // TODO initialized in loop
+      std::unique_ptr<Entry> entry = reader_writer->LoadEntry(it_offset, error_code, it_name);
       if (error_code != ErrorCode::kSuccess)
-        return std::shared_ptr<Entry>();
+        return nullptr;
 
       if (!strcmp(entry_name, it_name)) {
         *section_directory = sec_dir;
@@ -124,12 +142,12 @@ std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
 
     if (!sec_dir.next_offset()) {
       error_code = ErrorCode::kErrorNotFound;
-      return std::shared_ptr<Entry>();
+      return nullptr;
     }
 
     sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
-      return std::shared_ptr<Entry>();
+      return nullptr;
 
     start_position = 0;
   }
@@ -137,8 +155,8 @@ std::shared_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
 
 ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf) {
   ErrorCode error_code;
-  SectionDirectory sec_dir;
-  SectionDirectory::Iterator it;
+  SectionDirectory sec_dir{0,0,0}; // TODO compile; remove
+  SectionDirectory::Iterator it{0};
 
   FindEntryByName(prev, reader_writer, error_code, &sec_dir, &it);
   while (error_code == ErrorCode::kSuccess) {
@@ -147,7 +165,7 @@ ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reade
         return error_code;
       if (*it == 0)
         continue;
-      reader_writer->LoadEntry(*it, next_buf, error_code);
+      reader_writer->LoadEntry(*it, error_code, next_buf);
       return error_code;
     }
 
