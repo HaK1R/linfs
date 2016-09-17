@@ -10,8 +10,7 @@ std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
                                                        ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
-  // TODO? use brace-enclosed initializer list
-  error_code = writer->Write(EntryLayout::DirectoryHeader(name), entry_offset);
+  error_code = writer->Write<EntryLayout::DirectoryHeader>(EntryLayout::DirectoryHeader{name}, entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
@@ -127,16 +126,15 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
         return nullptr;
       if (*it == 0)
         continue;
-      uint64_t it_offset = *it;
-      char it_name[kNameMax + 1] = {0}; // TODO initialized in loop
-      std::unique_ptr<Entry> entry = reader_writer->LoadEntry(it_offset, error_code, it_name);
+      char it_name[kNameMax + 1];
+      std::unique_ptr<Entry> it_entry = reader_writer->LoadEntry(*it, error_code, it_name);
       if (error_code != ErrorCode::kSuccess)
         return nullptr;
 
-      if (!strcmp(entry_name, it_name)) {
+      if (strcmp(entry_name, it_name) == 0) {
         *section_directory = sec_dir;
         *iterator = it;
-        return entry;
+        return it_entry;
       }
     }
 
@@ -155,8 +153,8 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
 
 ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf) {
   ErrorCode error_code;
-  SectionDirectory sec_dir{0,0,0}; // TODO compile; remove
-  SectionDirectory::Iterator it{0};
+  SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
+  SectionDirectory::Iterator it(0);
 
   FindEntryByName(prev, reader_writer, error_code, &sec_dir, &it);
   while (error_code == ErrorCode::kSuccess) {

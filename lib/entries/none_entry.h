@@ -21,7 +21,7 @@ class NoneEntry : public Entry {
 
   NoneEntry(uint64_t base_offset, uint64_t head_offset)
       : Entry(Type::kNone, base_offset), head_offset_(head_offset) {}
-  ~NoneEntry() override {}
+  ~NoneEntry() override = default;
 
   uint64_t head_offset() const { return head_offset_; }
   // TODO section_offset() { throw std::logic_exception(); }

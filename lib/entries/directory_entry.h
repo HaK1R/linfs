@@ -22,8 +22,9 @@ class DirectoryEntry : public Entry {
                                                 const char *name);
 
   DirectoryEntry(uint64_t base_offset) : Entry(Type::kDirectory, base_offset) {}
-  ~DirectoryEntry() override {}
+  ~DirectoryEntry() override = default;
 
+  // TODO don't use shared_ptr
   ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
   ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,
                         ReaderWriter* reader_writer,

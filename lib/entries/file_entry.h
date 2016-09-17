@@ -23,7 +23,7 @@ class FileEntry : public Entry {
 
   FileEntry(uint64_t base_offset, uint64_t size)
       : Entry(Type::kFile, base_offset), size_(size) {}
-  ~FileEntry() override {}
+  ~FileEntry() override = default;
 
   uint64_t size() const { return size_; }
 
@@ -32,7 +32,7 @@ class FileEntry : public Entry {
 
  private:
   SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code);
-  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer) { return ErrorCode::kSuccess; } // TODO
+  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer) { (void)size; (void)reader_writer; return ErrorCode::kErrorNotSupported; } // TODO
 
   uint64_t size_;
 };
