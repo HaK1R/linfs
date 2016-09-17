@@ -11,7 +11,7 @@ ErrorCode SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader
     if (error_code != ErrorCode::kSuccess)
       return error_code;
     if (*it == 0) {
-      error_code = reader_writer->Write(entry_offset, it.position());
+      error_code = reader_writer->Write<uint64_t>(entry_offset, it.position());
       return error_code;
     }
   }
@@ -25,7 +25,7 @@ ErrorCode SectionDirectory::RemoveEntry(uint64_t entry_offset, ReaderWriter* rea
     if (error_code != ErrorCode::kSuccess)
       return error_code;
     if (*it == entry_offset) {
-      error_code = reader_writer->Write(entry_offset, it.position());
+      error_code = reader_writer->Write<uint64_t>(entry_offset, it.position());
       return error_code;
     }
   }

@@ -10,8 +10,7 @@ std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code,
                                              const char *name) {
-  // TODO? use brace-enclosed initializer list
-  error_code = writer->Write(EntryLayout::FileHeader(0, name), entry_offset);
+  error_code = writer->Write<EntryLayout::FileHeader>(EntryLayout::FileHeader{0, name}, entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 

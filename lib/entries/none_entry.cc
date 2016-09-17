@@ -9,8 +9,7 @@ namespace linfs {
 std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code) {
-  // TODO? use brace-enclosed initializer list
-  error_code = writer->Write(EntryLayout::NoneHeader(0), entry_offset);
+  error_code = writer->Write<EntryLayout::NoneHeader>(EntryLayout::NoneHeader{0}, entry_offset);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 

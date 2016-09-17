@@ -28,29 +28,15 @@ class ReaderWriter {
 
   template<typename T>
   T Read(uint64_t offset, ErrorCode& error_code) {
-    // TODO Check that it's for ints
-    T value;
-    memset(&value, 0, sizeof value); // TODO compile remove it;
-
-    device_.seekg(offset);
-    if (!device_.good()) {
-      error_code = ErrorCode::kErrorInputOutput;
-      return value;
-    }
-
-    // TODO check endianness
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "T must be a trivially copyable type");
-    device_.read(reinterpret_cast<char*>(&value), sizeof value);
-    if (!device_.good()) {
-      error_code = ErrorCode::kErrorInputOutput;
-      return value;
-    }
-
-    error_code = ErrorCode::kSuccess;
-    return value;
+    return ReadIntegral<T>(std::is_integral<T>(), offset, error_code);
   }
   size_t Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code);
+
+  template<typename T, typename U>
+  ErrorCode Write(U&& u, uint64_t offset) {
+    return WriteIntegral<T>(std::is_integral<T>(), std::forward<U>(u), offset);
+  }
+  size_t Write(const char* buf, size_t buf_size, uint64_t offset, ErrorCode& error_code);
 
   template<typename T>
   // TODO? Distance=uint64_t
@@ -58,9 +44,9 @@ class ReaderWriter {
                                             T, uint64_t, const T*, const T&> {
     using _Base = std::iterator<std::input_iterator_tag, T, uint64_t, const T*, const T&>;
    public:
-    using value_type = typename _Base::value_type;
-    using reference = typename _Base::reference;
-    using pointer = typename _Base::pointer;
+    using typename _Base::value_type;
+    using typename _Base::reference;
+    using typename _Base::pointer;
 
     ReadIterator(uint64_t position) : position_(position) {}
     ReadIterator(uint64_t position, ReaderWriter* reader, ErrorCode& error_code)
@@ -96,24 +82,6 @@ class ReaderWriter {
     ErrorCode* error_code_ = nullptr;
   };
 
-  // TODO rename to position
-  template<typename T>
-  ErrorCode Write(const T& value, uint64_t offset) {
-    device_.seekp(offset);
-    if (!device_.good())
-      return ErrorCode::kErrorInputOutput;
-
-    // TODO check endianness
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "T must be a trivially copyable type");
-    device_.write(reinterpret_cast<const char *>(&value), sizeof value);
-    if (!device_.good())
-      return ErrorCode::kErrorInputOutput;
-
-    return ErrorCode::kSuccess;
-  }
-  size_t Write(const char* buf, size_t buf_size, uint64_t offset, ErrorCode& error_code);
-
   //template<typename T>
   //std::tuple<typename ReadIterator<T>, ReadIterator<T>> ReadRange(uint64_t pos, uint64_t len, ErrorCode& error_code) {
   //  assert(len % sizeof(T) == 0);
@@ -122,19 +90,47 @@ class ReaderWriter {
   //}
 
   template<typename T = Section, typename... Args>
-  // TODO? rename to section_offset
-  T LoadSection(uint64_t offset, ErrorCode& error_code, Args&&... args) {
-    static_assert(std::is_same<T, Section>::value ||
-                  std::is_base_of<Section, T>::value, "T must be derived from Section");
-    SectionLayout::Header header = Read<SectionLayout::Header>(offset, error_code);
-    return T(offset, header.size, header.next_offset, std::forward<Args>(args)...);
+  T LoadSection(uint64_t section_offset, ErrorCode& error_code, Args&&... args) {
+    static_assert(std::is_base_of<Section, T>::value, "T must be derived from Section");
+    SectionLayout::Header header = Read<SectionLayout::Header>(section_offset, error_code);
+    return T(section_offset, header.size, header.next_offset, std::forward<Args>(args)...);
   }
   ErrorCode SaveSection(Section section);
 
-  // TODO? rename to entry_offset
-  std::unique_ptr<Entry> LoadEntry(uint64_t offset, ErrorCode& error_code, char* entry_name = nullptr);
+  std::unique_ptr<Entry> LoadEntry(uint64_t entry_offset, ErrorCode& error_code, char* name_buf = nullptr);
 
  private:
+  template<typename T>
+  T ReadIntegral(std::true_type, uint64_t offset, ErrorCode& error_code) {
+    T value = 0;
+    Read(offset, reinterpret_cast<char*>(&value), sizeof value, error_code);
+    // TODO if error_code then check endianness
+    return value;
+  }
+  template<typename T>
+  T ReadIntegral(std::false_type, uint64_t offset, ErrorCode& error_code) {
+    T value;
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "T must be a trivially copyable type");
+    Read(offset, reinterpret_cast<char*>(&value), sizeof value, error_code);
+    return value;
+  }
+  template<typename T>
+  ErrorCode WriteIntegral(std::true_type, T value, uint64_t offset) {
+    // TODO check endianness: typename = std::enable_if_t<!std::is_integral<T>::value>>
+    ErrorCode error_code;
+    Write(reinterpret_cast<const char*>(&value), sizeof value, offset, error_code);
+    return error_code;
+  }
+  template<typename T>
+  ErrorCode WriteIntegral(std::false_type, const T& value, uint64_t offset) {
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "T must be a trivially copyable type");
+    ErrorCode error_code;
+    Write(reinterpret_cast<const char*>(&value), sizeof value, offset, error_code);
+    return error_code;
+  }
+
   std::fstream device_;
 };
 
