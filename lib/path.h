@@ -11,12 +11,19 @@ namespace linfs {
 
 class Path {
  public:
+  class Name : protected std::string {
+   public:
+    // Still passing by reference? Pass by value! Just trust copy elision!
+    Name(std::string s) : std::string(std::move(s)) {}
+    operator const char*() const { return c_str(); }
+  };
+
   static Path Normalize(const char *path_cstr, ErrorCode& error_code);
 
   bool Empty() const { return data_.empty(); }
-  std::string FirstName() const;
+  Name FirstName() const;
   Path ExceptFirstName() const;
-  std::string LastName() const;
+  Name LastName() const;
   Path ExceptLastName() const;
 
   // Define well known aliases.

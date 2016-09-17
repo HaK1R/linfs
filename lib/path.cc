@@ -13,7 +13,7 @@ Path Path::Normalize(const char *path_cstr, ErrorCode& error_code) {
   return Path(path_cstr);
 }
 
-std::string Path::FirstName() const {
+Path::Name Path::FirstName() const {
   // TODO or std::size_t?
   size_t it = data_.find('/');
   if (it == std::string::npos)
@@ -25,10 +25,10 @@ Path Path::ExceptFirstName() const {
   size_t it = data_.find('/');
   if (it == std::string::npos)
     return Path();
-  return Path(data_.c_str() + it);
+  return Path(data_.c_str() + it + 1);
 }
 
-std::string Path::LastName() const {
+Path::Name Path::LastName() const {
   size_t it = data_.rfind('/');
   if (it == std::string::npos)
     return data_;
