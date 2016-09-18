@@ -7,8 +7,8 @@
 #include <iterator>
 #include <string>
 
-#include "fs/IFile.h"
 #include "fs/error_code.h"
+#include "fs/IFile.h"
 
 namespace fs {
 
@@ -17,6 +17,7 @@ constexpr size_t kNameMax = 256; // equivalent to NAME_MAX
 constexpr size_t kPathMax = 1024; // equivalent to PATH_MAX
 
 // TODO? rename to FileSystemInterface
+// TODO? rename to ...Filesystem...
 class IFileSystem {
  public:
   enum class ClusterSize : uint8_t {

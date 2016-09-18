@@ -1,6 +1,7 @@
 # build artifacts
 *.o
-liblinfs.so
+lib/liblinfs.so
+tests/run_tests
 
 # for vim users
 *.swp
