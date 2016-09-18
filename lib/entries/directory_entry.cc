@@ -7,10 +7,16 @@ namespace fs {
 namespace linfs {
 
 std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
+                                                       uint64_t entry_size,
                                                        ReaderWriter* writer,
                                                        ErrorCode& error_code,
                                                        const char *name) {
   error_code = writer->Write<EntryLayout::DirectoryHeader>(EntryLayout::DirectoryHeader{name}, entry_offset);
+  if (error_code != ErrorCode::kSuccess)
+    return nullptr;
+
+  error_code = ClearEntries(entry_offset + sizeof(EntryLayout::DirectoryHeader),
+                            entry_offset + entry_size, writer);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
@@ -42,7 +48,9 @@ ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = next_sec_dir.Clear(reader_writer);
+  error_code = ClearEntries(next_sec_dir.data_offset(),
+                            next_sec_dir.data_size(),
+                            reader_writer);
   if (error_code != ErrorCode::kSuccess) {
     allocator->ReleaseSection(next_sec_dir, reader_writer);
     return error_code;
@@ -174,6 +182,18 @@ ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reade
   }
 
   return error_code;
+}
+
+ErrorCode DirectoryEntry::ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer) {
+  while (entries_offset != entries_end) {
+    ErrorCode error_code = reader_writer->Write<uint64_t>(0, entries_offset);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    entries_offset += sizeof(uint64_t);
+  }
+
+  return ErrorCode::kSuccess;
 }
 
 }  // namespace linfs

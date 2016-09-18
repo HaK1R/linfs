@@ -25,8 +25,6 @@ class Section {
   uint64_t data_offset() const { return base_offset() + sizeof(SectionLayout::Header); }
   uint64_t data_size() const { return size() - sizeof(SectionLayout::Header); }
 
-  ErrorCode Clear(ReaderWriter* reader_writer);
-
  protected:
   // TODO? use methods instead of entire classes
   friend class DirectoryEntry;

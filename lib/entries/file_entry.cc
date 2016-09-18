@@ -7,6 +7,7 @@ namespace fs {
 namespace linfs {
 
 std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
+                                             uint64_t /* entry_size */,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code,
                                              const char *name) {

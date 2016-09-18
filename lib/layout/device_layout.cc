@@ -10,7 +10,7 @@ ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, Header& header) {
   ErrorCode error_code;
   Header from_file = reader->Read<DeviceLayout::Header>(0, error_code);
   if (error_code != ErrorCode::kSuccess)
-    return error_code;
+    return ErrorCode::kErrorFormat;
 
   Header default_header;
   if (memcmp(from_file.identifier, default_header.identifier, sizeof from_file.identifier) != 0)
@@ -26,7 +26,7 @@ ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, Header& header) {
   return ErrorCode::kSuccess;
 }
 
-ErrorCode DeviceLayout::WriteHeader(ReaderWriter* writer, Header header) {
+ErrorCode DeviceLayout::WriteHeader(Header header, ReaderWriter* writer) {
   // TODO fix endianness
   return writer->Write<DeviceLayout::Header>(header, 0);
 }

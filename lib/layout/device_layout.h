@@ -41,17 +41,20 @@ class DeviceLayout {
 
   // The device's body looks as follows, and used only to calculate offsets:
   struct __attribute__((packed)) Body {
-    EntryLayout::NoneHeader none_entry;
-    struct __attribute__((packed)) {
-      SectionLayout::Header section;
-      EntryLayout::DirectoryHeader entry;
+    Body(const Header& header)
+      : root({{(1 << header.cluster_size_log2) - header.root_entry_offset + sizeof root.section, 0}}) {}
+    // ---
+    const EntryLayout::NoneHeader none_entry{0};
+    const struct __attribute__((packed)) {
+      SectionLayout::Header section = {0, 0};
+      EntryLayout::DirectoryHeader entry{""};
     } root;
   };
   static_assert(std::is_standard_layout<Body>::value,
                 "DeviceLayout::Body must be a standard-layout type");
 
   static ErrorCode ParseHeader(ReaderWriter* reader, Header& header);
-  static ErrorCode WriteHeader(ReaderWriter* writer, Header header);
+  static ErrorCode WriteHeader(Header header, ReaderWriter* writer);
 };
 
 // TODO? ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);

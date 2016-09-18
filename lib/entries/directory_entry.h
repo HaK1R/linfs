@@ -17,6 +17,7 @@ namespace linfs {
 class DirectoryEntry : public Entry {
  public:
   static std::unique_ptr<DirectoryEntry> Create(uint64_t entry_offset,
+                                                uint64_t entry_size,
                                                 ReaderWriter* writer,
                                                 ErrorCode& error_code,
                                                 const char *name);
@@ -36,6 +37,9 @@ class DirectoryEntry : public Entry {
                                          SectionDirectory* section_directory = nullptr,
                                          SectionDirectory::Iterator *iterator = nullptr);
   ErrorCode GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
+
+ private:
+  static ErrorCode ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer);
 };
 
 }  // namespace linfs

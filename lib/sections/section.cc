@@ -7,16 +7,6 @@ namespace fs {
 
 namespace linfs {
 
-ErrorCode Section::Clear(ReaderWriter* reader_writer) {
-  for (uint64_t offset = data_offset(), size = data_size();
-       size != 0; ++offset, --size) {
-    ErrorCode error_code = reader_writer->Write<uint8_t>(0, offset);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
-  }
-  return ErrorCode::kSuccess;
-}
-
 ErrorCode Section::SetSize(uint64_t size, ReaderWriter* reader_writer) {
   ErrorCode error_code = reader_writer->Write<uint64_t>(size,
                                         base_offset() + offsetof(SectionLayout::Header, size));

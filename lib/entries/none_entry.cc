@@ -7,6 +7,7 @@ namespace fs {
 namespace linfs {
 
 std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
+                                             uint64_t /* entry_size */,
                                              ReaderWriter* writer,
                                              ErrorCode& error_code) {
   error_code = writer->Write<EntryLayout::NoneHeader>(EntryLayout::NoneHeader{0}, entry_offset);

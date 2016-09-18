@@ -13,6 +13,7 @@
 namespace fs {
 
 // File system limits:
+// TODO? move to limits.h
 constexpr size_t kNameMax = 256; // equivalent to NAME_MAX
 constexpr size_t kPathMax = 1024; // equivalent to PATH_MAX
 

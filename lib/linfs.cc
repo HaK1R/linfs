@@ -34,7 +34,8 @@ std::unique_ptr<T> LinFS::AllocateEntry(ErrorCode& error_code, Args&&... args) {
   Section place = allocator_->AllocateSection(1, &accessor_, error_code);
   if (error_code != ErrorCode::kSuccess) return nullptr;
 
-  std::unique_ptr<T> entry = T::Create(place.data_offset(), &accessor_, error_code, std::forward<Args>(args)...);
+  std::unique_ptr<T> entry = T::Create(place.data_offset(), place.data_size(),
+                                       &accessor_, error_code, std::forward<Args>(args)...);
   if (!entry)
     allocator_->ReleaseSection(place, &accessor_);
   return entry;
@@ -61,7 +62,7 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
 }
 
 ErrorCode LinFS::Load(const char *device_path) {
-  ErrorCode error_code = accessor_.Open(device_path, std::ios_base::in | std::ios_base::out);
+  ErrorCode error_code = accessor_.Open(device_path, std::ios_base::in | std::ios_base::out | std::ios_base::ate);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
@@ -89,23 +90,25 @@ ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  // TODO () or {}?
   DeviceLayout::Header header(cluster_size);
-  error_code = DeviceLayout::WriteHeader(&writer, header);
-  if (error_code != ErrorCode::kSuccess)
-    return error_code;
-  //DeviceLayout::Body body(header);
-
-  NoneEntry::Create(header.none_entry_offset, &writer, error_code);
+  error_code = DeviceLayout::WriteHeader(header, &writer);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = writer.SaveSection(Section(sizeof header + offsetof(DeviceLayout::Body, root),
-                                          (1 << static_cast<uint8_t>(cluster_size)) - sizeof header - offsetof(DeviceLayout::Body, root), 0)); // TODO compile
+  DeviceLayout::Body body(header);
+
+  NoneEntry::Create(header.none_entry_offset, sizeof body.none_entry, &writer, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  DirectoryEntry::Create(header.root_entry_offset, &writer, error_code, "/");
+  Section root_section(header.root_entry_offset - sizeof body.root.section,
+                       body.root.section.size, body.root.section.next_offset);
+  error_code = writer.SaveSection(root_section);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  DirectoryEntry::Create(header.root_entry_offset, root_section.data_size(),
+                         &writer, error_code, "/");
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 

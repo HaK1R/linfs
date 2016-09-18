@@ -16,6 +16,7 @@ namespace linfs {
 class NoneEntry : public Entry {
  public:
   static std::unique_ptr<NoneEntry> Create(uint64_t entry_offset,
+                                           uint64_t entry_size,
                                            ReaderWriter* writer,
                                            ErrorCode& error_code);
 

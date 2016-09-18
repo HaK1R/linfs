@@ -15,7 +15,7 @@ namespace linfs {
 
 ErrorCode ReaderWriter::Open(const char* device_path, std::ios_base::openmode mode) {
   device_.open(device_path, mode | std::ios_base::binary);
-  return device_.good() ? ErrorCode::kSuccess : ErrorCode::kErrorInputOutput;
+  return device_.good() ? ErrorCode::kSuccess : ErrorCode::kErrorDeviceUnknown;
 }
 
 size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code) {
@@ -48,7 +48,7 @@ size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset, Er
 }
 
 ErrorCode ReaderWriter::SaveSection(Section section) {
-  SectionLayout::Header header{section.size(), section.next_offset()};
+  SectionLayout::Header header = {section.size(), section.next_offset()};
   return Write<SectionLayout::Header>(header, section.base_offset());
 }
 
