@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "tests/filesystem_fixtures.h"
 
 #include <boost/filesystem.hpp>
@@ -52,7 +54,7 @@ BOOST_FIXTURE_TEST_CASE(format_fs_if_path_is_directory, CreatedFSFixture) {
   BOOST_REQUIRE(boost::filesystem::create_directory(device_path()));
 
   BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k1KB));
-  BOOST_CHECK(ec == ErrorCode::kErrorInputOutput);
+  BOOST_CHECK(ec == ErrorCode::kErrorDeviceUnknown);
 }
 
 BOOST_FIXTURE_TEST_CASE(load_valid_fs, FormattedFSFixture) {
@@ -66,10 +68,19 @@ BOOST_FIXTURE_TEST_CASE(load_fs_if_path_doesnt_exist, FormattedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(load_fs_if_path_is_regular_file, FormattedFSFixture) {
-  boost::filesystem::resize_file(device_path(), 6);
+  // First eight bytes contains device's signature
+  BOOST_REQUIRE(std::fstream(device_path()).write("1234567890", 10).good());
 
   BOOST_CHECK_NO_THROW(ec = fs->Load(device_path()));
   BOOST_CHECK(ec == ErrorCode::kErrorInvalidSignature);
+}
+
+BOOST_FIXTURE_TEST_CASE(load_fs_from_the_future, FormattedFSFixture) {
+  // The 9th byte is a major version.  Set it to 255.
+  BOOST_REQUIRE(std::fstream(device_path()).seekp(9).put(char(255)).good());
+
+  BOOST_CHECK_NO_THROW(ec = fs->Load(device_path()));
+  BOOST_CHECK(ec == ErrorCode::kErrorNotSupported);
 }
 
 BOOST_FIXTURE_TEST_CASE(load_broken_fs, FormattedFSFixture) {
