@@ -2,19 +2,45 @@
 
 #include <cstddef>
 
+#include "fs/IFileSystem.h"
+
 namespace fs {
 
 namespace linfs {
 
 Path Path::Normalize(const char *path_cstr, ErrorCode& error_code) {
-  if (path_cstr[0] == '/')
-    path_cstr++;
+  std::string normalized;
+  normalized.reserve(kNameMax + 1);
+
+  for (const char *pch = path_cstr, *name_start = path_cstr; *pch != '\0'; ++pch) {
+    switch (*pch) {
+      case '/':
+        name_start = pch + 1;
+        if (!normalized.empty() && normalized.back() != '/')
+          normalized.push_back(*pch);
+        break;
+      default:
+        // TODO? casts?
+        if ((uintptr_t)pch - (uintptr_t)name_start >= kNameMax) {
+          error_code = ErrorCode::kErrorNameTooLong;
+          return Path();
+        }
+        normalized.push_back(*pch);
+        break;
+    }
+  }
+
+  if (normalized.size() > kPathMax) {
+    error_code = ErrorCode::kErrorNameTooLong;
+    return Path();
+  }
+
   error_code = ErrorCode::kSuccess;
-  return Path(path_cstr);
+  return Path(std::move(normalized));
 }
 
 Path::Name Path::FirstName() const {
-  // TODO or std::size_t?
+  // TODO? or std::size_t?
   size_t it = data_.find('/');
   if (it == std::string::npos)
     return data_;

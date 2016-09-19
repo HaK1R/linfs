@@ -35,7 +35,7 @@ class EntryLayout {
                 "EntryLayout::NoneHeader isn't a standard-layout type");
 
   struct __attribute__((packed)) DirectoryHeader {
-    DirectoryHeader(const char* _name) { 
+    DirectoryHeader(const char* _name) {
       strncpy(name, _name, sizeof name);
     }
     // ---

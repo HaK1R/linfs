@@ -49,7 +49,7 @@ ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
     return error_code;
 
   error_code = ClearEntries(next_sec_dir.data_offset(),
-                            next_sec_dir.data_size(),
+                            next_sec_dir.data_offset() + next_sec_dir.data_size(),
                             reader_writer);
   if (error_code != ErrorCode::kSuccess) {
     allocator->ReleaseSection(next_sec_dir, reader_writer);
@@ -130,18 +130,21 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
   while (1) {
     for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader_writer, error_code, start_position);
          it != sec_dir.EntriesEnd(); ++it) {
+      uint64_t it_offset = *it;
       if (error_code != ErrorCode::kSuccess)
         return nullptr;
-      if (*it == 0)
+      if (it_offset == 0)
         continue;
       char it_name[kNameMax + 1];
-      std::unique_ptr<Entry> it_entry = reader_writer->LoadEntry(*it, error_code, it_name);
+      std::unique_ptr<Entry> it_entry = reader_writer->LoadEntry(it_offset, error_code, it_name);
       if (error_code != ErrorCode::kSuccess)
         return nullptr;
 
-      if (strcmp(entry_name, it_name) == 0) {
-        *section_directory = sec_dir;
-        *iterator = it;
+      if (entry_name == nullptr || strcmp(entry_name, it_name) == 0) {
+        if (entry_name != nullptr && section_directory != nullptr) {
+          *section_directory = sec_dir;
+          *iterator = it;
+        }
         return it_entry;
       }
     }
@@ -164,14 +167,28 @@ ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reade
   SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
   SectionDirectory::Iterator it(0);
 
-  FindEntryByName(prev, reader_writer, error_code, &sec_dir, &it);
+  // TODO? better
+  std::unique_ptr<Entry> entry = FindEntryByName(prev, reader_writer, error_code, &sec_dir, &it);
+  if (prev == nullptr) {
+    // Get first entry.
+    if (error_code == ErrorCode::kSuccess) {
+      reader_writer->LoadEntry(entry->base_offset(), error_code, next_buf);
+      return error_code;
+    }
+  }
+  else {
+    ++it;
+  }
+
+  // Get next entries
   while (error_code == ErrorCode::kSuccess) {
-    while (++it != sec_dir.EntriesEnd()) {
+    while (it != sec_dir.EntriesEnd()) {
+      uint64_t it_offset = *it++;
       if (error_code != ErrorCode::kSuccess)
         return error_code;
-      if (*it == 0)
+      if (it_offset == 0)
         continue;
-      reader_writer->LoadEntry(*it, error_code, next_buf);
+      reader_writer->LoadEntry(it_offset, error_code, next_buf);
       return error_code;
     }
 
@@ -179,6 +196,8 @@ ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reade
       return ErrorCode::kErrorNotFound;
 
     sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset(), error_code);
+    if (error_code == ErrorCode::kSuccess)
+      it = sec_dir.EntriesBegin(reader_writer, error_code);
   }
 
   return error_code;

@@ -25,7 +25,7 @@ class DeviceLayout {
       uint8_t minor = 1;
     } version;                    // version (for backward compatibility)
     uint8_t cluster_size_log2;    // 2^n is actual cluster size
-    uint8_t reserved0 = {0};      // reserved for future usage (but actually I'm
+    uint8_t reserved0 = 0;        // reserved for future usage (but actually I'm
                                   // worry about alignment on ARM/SPARC etc.)
     uint16_t none_entry_offset =  // location of none entry in the file
         sizeof(Header) + offsetof(Body, none_entry);

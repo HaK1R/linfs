@@ -10,10 +10,11 @@ enum class ErrorCode : uint8_t {
   // Common:
   kSuccess = 0,             // ok: no error
   kErrorNoMemory,           // error: no memory
-  kErrorExist,              // error: file or directory already exists
-  kErrorExists,
+  kErrorExists,             // error: file or directory already exists
   kErrorNotFound,           // error: file or directory not found
   kErrorNotSupported,       // error: operation not supported
+  kErrorNameTooLong,        // error: file name exceeds kNameMax, or
+                            //        path exceeds kPathMax
 
   // Device and system errors:
   kErrorDeviceUnknown,      // error: unknown error while opening a device

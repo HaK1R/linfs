@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstring> // TDOO remove
 #include <fstream>
 #include <ios>
 #include <iterator>
@@ -50,32 +49,26 @@ class ReaderWriter {
 
     ReadIterator(uint64_t position) : position_(position) {}
     ReadIterator(uint64_t position, ReaderWriter* reader, ErrorCode& error_code)
-        : position_(position - sizeof(value_type)), reader_(reader), error_code_(&error_code) {
-      ++*this;
-    }
+        : position_(position), reader_(reader), error_code_(&error_code) {}
+
     uint64_t position() const { return position_; }
-    bool operator==(const ReadIterator& that) {
-      return position_ == that.position_;
-    }
+
+    bool operator==(const ReadIterator& that) { return position_ == that.position_; }
     bool operator!=(const ReadIterator& that) { return !(*this == that); }
-    reference operator*() const { return value_; }
-    pointer operator->() const { return &value_; }
-    ReadIterator& operator++() {
-      if (reader_) {
-        position_ += sizeof(value_type);
+    reference operator*() /*const*/ { ReadValue(); return value_; }
+    pointer operator->() /*TODO? const*/ { ReadValue(); return &value_; }
+    ReadIterator& operator++() { position_ += sizeof(value_type); return *this; }
+    ReadIterator operator++(int) { ReadIterator tmp = *this; ++*this; return tmp; }
+
+   private:
+    void ReadValue() {
+      if (reader_ != nullptr) {
         value_ = reader_->Read<value_type>(position_, *error_code_);
         if (*error_code_ != ErrorCode::kSuccess)
           reader_ = nullptr;
       }
-      return *this;
-    }
-    ReadIterator operator++(int) {
-      ReadIterator tmp = *this;
-      ++*this;
-      return tmp;
     }
 
-   private:
     value_type value_;
     uint64_t position_;
     ReaderWriter* reader_ = nullptr;

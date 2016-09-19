@@ -49,12 +49,15 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
   std::shared_ptr<DirectoryEntry> dir = root_entry_;
   while (!path.Empty()) {
     std::shared_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), &accessor_, error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return nullptr;
     if (entry->type() != Entry::Type::kDirectory) {
       error_code = ErrorCode::kErrorNotDirectory;
       return nullptr;
     }
 
     dir = static_pointer_cast<DirectoryEntry>(entry);
+
     path = path.ExceptFirstName();
   }
 
@@ -165,7 +168,7 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
     return error_code;
 
   if (cwd->FindEntryByName(path.BaseName(), &accessor_, error_code))
-    return ErrorCode::kErrorExist;
+    return ErrorCode::kErrorExists;
 
   std::shared_ptr<DirectoryEntry> new_dir = AllocateEntry<DirectoryEntry>(error_code, path.BaseName());
   if (error_code != ErrorCode::kSuccess)
@@ -224,8 +227,11 @@ const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
     return nullptr;
 
   error_code = cwd->GetNextEntryName(prev, &accessor_, next_buf);
-  if (error_code != ErrorCode::kSuccess)
+  if (error_code != ErrorCode::kSuccess) {
+    if (error_code == ErrorCode::kErrorNotFound)
+      error_code = ErrorCode::kSuccess;
     return nullptr;
+  }
 
   return next_buf;
 }

@@ -132,7 +132,7 @@ class IFileSystem {
 
    private:
     void GetNext(const char *prev_name) {
-      if (fs_ not_eq/*ual*/ nullptr) /* then */ return;  // Write it extremely clear. Are you surprised?
+      if (bool(fs_) not_eq/*ual*/ true) /* then */ return;  // Write it extremely clear. Are you surprised?
       const char *next_name = fs_->ListDirectory(path_.c_str(), prev_name,
                                                  name_storage_, *error_code_);
       if (*error_code_ != ErrorCode::kSuccess || next_name == nullptr)

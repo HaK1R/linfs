@@ -26,8 +26,7 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode
   }
 
   device_.read(buf, buf_size);
-  if (!device_.good())
-    error_code = ErrorCode::kErrorInputOutput;
+  error_code = device_.good() ? ErrorCode::kSuccess : ErrorCode::kErrorInputOutput;
   return device_.gcount();
 }
 
@@ -44,6 +43,7 @@ size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset, Er
     return 0;
   }
 
+  error_code = ErrorCode::kSuccess;
   return buf_size;
 }
 
