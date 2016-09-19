@@ -50,14 +50,35 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_long_name, LoadedFSFixture) {
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 }
 
+BOOST_FIXTURE_TEST_CASE(create_dir_with_long_path, LoadedFSFixture) {
+  std::string path(fs::kNameMax, 'a');
+  while (path.size() < fs::kPathMax)
+    path += "/" + path;
+  path.resize(fs::kPathMax);
+
+  BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory(path.c_str()));
+  BOOST_CHECK(ec != ErrorCode::kErrorNameTooLong);
+}
+
 BOOST_FIXTURE_TEST_CASE(create_dir_with_illegal_name, LoadedFSFixture) {
+  // The / is forbidden but there it is handled as " is not allowed" directory in the root.
   BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory("/ is not allowed"));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_name, LoadedFSFixture) {
   BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory(std::string(fs::kNameMax + 1, 'a').c_str()));
-  BOOST_CHECK(ec != ErrorCode::kSuccess); // TODO
+  BOOST_CHECK(ec == ErrorCode::kErrorNameTooLong);
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_path, LoadedFSFixture) {
+  std::string path(fs::kNameMax, 'a');
+  while (path.size() < fs::kPathMax + 1)
+    path += "/" + path;
+  path.resize(fs::kPathMax + 1);
+
+  BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory(path.c_str()));
+  BOOST_CHECK(ec == ErrorCode::kErrorNameTooLong);
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_if_dir_exists, LoadedFSFixture) {
@@ -76,6 +97,14 @@ BOOST_FIXTURE_TEST_CASE(create_dir_if_file_exists, LoadedFSFixture) {
 
   BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory("file_or_directory"));
   BOOST_CHECK(ec == ErrorCode::kErrorExists);
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_is_case_sensitive, LoadedFSFixture) {
+  BOOST_REQUIRE_NO_THROW(ec = fs->CreateDirectory("home"));
+  BOOST_REQUIRE(ec == ErrorCode::kSuccess);
+
+  BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory("Home"));
+  BOOST_CHECK(ec == ErrorCode::kSuccess);
 }
 
 BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_file, LoadedFSFixture) {
@@ -159,6 +188,17 @@ BOOST_FIXTURE_TEST_CASE(remove_dir_if_doesnt_exist, LoadedFSFixture) {
   BOOST_CHECK(ec == ErrorCode::kErrorNotFound);
 }
 
+BOOST_FIXTURE_TEST_CASE(remove_dir_is_case_sensitive, LoadedFSFixture) {
+  BOOST_REQUIRE_NO_THROW(ec = fs->CreateDirectory("home"));
+  BOOST_REQUIRE(ec == ErrorCode::kSuccess);
+
+  BOOST_CHECK_NO_THROW(ec = fs->RemoveDirectory("Home"));
+  BOOST_CHECK(ec == ErrorCode::kErrorNotFound);
+
+  BOOST_CHECK_NO_THROW(ec = fs->RemoveDirectory("home"));
+  BOOST_CHECK(ec == ErrorCode::kSuccess);
+}
+
 BOOST_FIXTURE_TEST_CASE(remove_dir_if_already_removed, LoadedFSFixture) {
   BOOST_REQUIRE_NO_THROW(ec = fs->CreateDirectory("home"));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
@@ -227,8 +267,8 @@ BOOST_FIXTURE_TEST_CASE(list_sub_dir_with_many_dirs, LoadedFSFixture) {
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   std::vector<std::string> contents;
   for (int i = 0; i < 100; ++i) {
-    contents.push_back(std::string("home/") + std::to_string(i));
-    BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory(contents.back().c_str()));
+    contents.push_back(std::to_string(i));
+    BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory((std::string("home/") + contents.back()).c_str()));
     BOOST_CHECK(ec == ErrorCode::kSuccess);
   }
 
