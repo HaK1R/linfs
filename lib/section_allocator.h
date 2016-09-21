@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 
 #include "fs/error_code.h"
 #include "lib/entries/none_entry.h"
@@ -21,6 +22,14 @@ class SectionAllocator {
   // Allocates section of the preferred |size|.
   // Note that the size of the allocated section may be less than |size|.
   Section AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code);
+  template<typename T>
+  T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+      static_assert(std::is_base_of<Section, T>::value,
+                    "T must be derived from Section");
+      Section section = AllocateSection(size, reader_writer, error_code);
+      return T(section.base_offset(), section.size(), section.next_offset());
+  }
+
   void ReleaseSection(const Section& section, ReaderWriter* reader_writer);
   void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
 
