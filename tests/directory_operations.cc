@@ -90,7 +90,6 @@ BOOST_FIXTURE_TEST_CASE(create_dir_if_dir_exists, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_if_file_exists, LoadedFSFixture) {
-  IFile* file;
   BOOST_REQUIRE_NO_THROW(file = fs->OpenFile("file_or_directory", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   BOOST_REQUIRE_NO_THROW(file->Close());
@@ -108,7 +107,6 @@ BOOST_FIXTURE_TEST_CASE(create_dir_is_case_sensitive, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_file, LoadedFSFixture) {
-  IFile* file;
   BOOST_REQUIRE_NO_THROW(file = fs->OpenFile(".profile", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   BOOST_REQUIRE_NO_THROW(file->Close());
@@ -174,7 +172,6 @@ BOOST_FIXTURE_TEST_CASE(remove_dir_with_dir, LoadedFSFixture) {
 BOOST_FIXTURE_TEST_CASE(remove_dir_with_file, LoadedFSFixture) {
   BOOST_REQUIRE_NO_THROW(ec = fs->CreateDirectory("home"));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
-  IFile* file;
   BOOST_REQUIRE_NO_THROW(file = fs->OpenFile("home/.profile", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   BOOST_REQUIRE_NO_THROW(file->Close());

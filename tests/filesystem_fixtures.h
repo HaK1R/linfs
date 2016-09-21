@@ -7,8 +7,9 @@
 #include "fs/linfs_factory.h"
 
 struct DefaultFSFixture {
-  fs::IFileSystem* fs;
   fs::ErrorCode ec;
+  fs::IFile* file;
+  fs::IFileSystem* fs;
 };
 
 struct CreatedFSFixture : DefaultFSFixture {
