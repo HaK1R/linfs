@@ -10,6 +10,22 @@ namespace fs {
 
 namespace linfs {
 
+Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  if (none_entry_->HasSections())
+    return none_entry_->GetSection(size, reader_writer, error_code);
+
+  // There is nothing in NoneEntry chain. Allocate a new cluster.
+  uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
+  Section section(total_clusters_ * cluster_size_, required_clusters * cluster_size_, 0);
+  error_code = reader_writer->SaveSection(section);
+  if (error_code == ErrorCode::kSuccess) {
+    error_code = reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
+    if (error_code == ErrorCode::kSuccess)
+      total_clusters_ += required_clusters;
+  }
+  return section;
+}
+
 void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* reader_writer) {
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
   if (last_cluster_offset == section.base_offset()) {

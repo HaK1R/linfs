@@ -80,7 +80,7 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
       break;
 
     if (!sec_file.next_offset()) {
-      SectionFile next_sec_file = allocator->AllocateSection<SectionFile>(buf_size, reader_writer, error_code);
+      SectionFile next_sec_file = allocator->AllocateSection(buf_size, reader_writer, error_code);
       if (error_code != ErrorCode::kSuccess)
         break;
 

@@ -44,7 +44,7 @@ ErrorCode DirectoryEntry::AddEntry(const Entry* entry,
   if (error_code != ErrorCode::kErrorNoMemory)
     return error_code; // kSuccess or any of kError*
 
-  SectionDirectory next_sec_dir = allocator->AllocateSection<SectionDirectory>(1, reader_writer, error_code);
+  SectionDirectory next_sec_dir = allocator->AllocateSection(1, reader_writer, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include "fs/error_code.h"
 #include "lib/layout/section_layout.h"
@@ -24,6 +25,12 @@ class Section {
 
   uint64_t data_offset() const { return base_offset() + sizeof(SectionLayout::Header); }
   uint64_t data_size() const { return size() - sizeof(SectionLayout::Header); }
+
+  template<typename T>
+  operator T() {
+    static_assert(std::is_base_of<Section, T>::value, "Allowed only for derived types");
+    return T(*this);
+  }
 
  protected:
   // TODO? use methods instead of entire classes

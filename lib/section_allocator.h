@@ -20,26 +20,7 @@ class SectionAllocator {
 
   // Allocates section of the preferred |size|.
   // Note that the size of the allocated section may be less than |size|.
-  template<typename T = Section>
-  T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
-    if (none_entry_->HasSections()) {
-      // FIXME compile
-      Section section = none_entry_->GetSection(size, reader_writer, error_code);
-      return *static_cast<T*>(&section);
-    }
-
-    // There is nothing in NoneEntry chain. Allocate a new cluster.
-    uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
-    T section(total_clusters_ * cluster_size_, required_clusters * cluster_size_, 0);
-    error_code = reader_writer->SaveSection(section);
-    if (error_code == ErrorCode::kSuccess) {
-      error_code = reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
-      if (error_code == ErrorCode::kSuccess)
-        total_clusters_ += required_clusters;
-    }
-    return section;
-  }
-
+  Section AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code);
   void ReleaseSection(const Section& section, ReaderWriter* reader_writer);
   void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
 
