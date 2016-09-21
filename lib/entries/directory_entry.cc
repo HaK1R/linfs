@@ -23,7 +23,7 @@ std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
   return std::make_unique<DirectoryEntry>(entry_offset);
 }
 
-ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
+ErrorCode DirectoryEntry::AddEntry(const Entry* entry,
                                    ReaderWriter* reader_writer,
                                    SectionAllocator* allocator) {
   ErrorCode error_code;
@@ -70,7 +70,7 @@ ErrorCode DirectoryEntry::AddEntry(std::shared_ptr<Entry> entry,
   return error_code;
 }
 
-ErrorCode DirectoryEntry::RemoveEntry(std::shared_ptr<Entry> entry,
+ErrorCode DirectoryEntry::RemoveEntry(const Entry* entry,
                                       ReaderWriter* reader_writer,
                                       SectionAllocator* allocator) {
   ErrorCode error_code;

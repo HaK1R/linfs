@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
@@ -25,9 +24,8 @@ class DirectoryEntry : public Entry {
   DirectoryEntry(uint64_t base_offset) : Entry(Type::kDirectory, base_offset) {}
   ~DirectoryEntry() override = default;
 
-  // TODO don't use shared_ptr
-  ErrorCode AddEntry(std::shared_ptr<Entry> entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
-  ErrorCode RemoveEntry(std::shared_ptr<Entry> entry,
+  ErrorCode AddEntry(const Entry* entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
+  ErrorCode RemoveEntry(const Entry* entry,
                         ReaderWriter* reader_writer,
                         SectionAllocator* allocator);
   bool HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code);

@@ -133,7 +133,7 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
     if (error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    error_code = cwd->AddEntry(static_pointer_cast<Entry>(file_entry), &accessor_, allocator_.get());
+    error_code = cwd->AddEntry(file_entry.get(), &accessor_, allocator_.get());
     if (error_code != ErrorCode::kSuccess) {
       ReleaseEntry(file_entry);
       return nullptr;
@@ -170,7 +170,7 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
   if (entry->type() != Entry::Type::kFile)
     return ErrorCode::kErrorIsDirectory;
 
-  error_code = cwd->RemoveEntry(entry, &accessor_, allocator_.get());
+  error_code = cwd->RemoveEntry(entry.get(), &accessor_, allocator_.get());
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
@@ -197,7 +197,7 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = cwd->AddEntry(static_pointer_cast<Entry>(new_dir), &accessor_, allocator_.get());
+  error_code = cwd->AddEntry(new_dir.get(), &accessor_, allocator_.get());
   if (error_code != ErrorCode::kSuccess) {
     ReleaseEntry(new_dir);
     return error_code;
@@ -230,7 +230,7 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
   if (has_entries)
     return ErrorCode::kErrorDirectoryNotEmpty;
 
-  error_code = cwd->RemoveEntry(entry, &accessor_, allocator_.get());
+  error_code = cwd->RemoveEntry(entry.get(), &accessor_, allocator_.get());
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
