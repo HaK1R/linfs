@@ -33,7 +33,7 @@ class FileEntry : public Entry {
 
  private:
   SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code);
-  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer) { (void)size; (void)reader_writer; return ErrorCode::kErrorNotSupported; } // TODO
+  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer);
 
   uint64_t size_;
 };

@@ -4,6 +4,8 @@
 #include <ios>
 #include <iostream>
 
+#include "lib/layout/device_layout.h"
+
 namespace fs {
 
 namespace linfs {
@@ -26,6 +28,14 @@ void SectionAllocator::ReleaseSection(uint64_t section_offset, ReaderWriter* rea
     std::cerr << "Leaked section at " << std::hex << section_offset << std::endl;
 
   ReleaseSection(section, reader_writer);
+}
+
+ErrorCode SectionAllocator::SetTotalClusters(uint64_t total_clusters, ReaderWriter* reader_writer) {
+  ErrorCode error_code = reader_writer->Write<uint64_t>(total_clusters,
+                                                        offsetof(DeviceLayout::Header, total_clusters));
+  if (error_code == ErrorCode::kSuccess)
+    total_clusters_ = total_clusters;
+  return error_code;
 }
 
 }  // namespace linfs

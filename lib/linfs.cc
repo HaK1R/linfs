@@ -128,7 +128,6 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
     return nullptr;
 
   std::shared_ptr<FileEntry> file_entry = static_pointer_cast<FileEntry>(cwd->FindEntryByName(path.BaseName(), &accessor_, error_code));
-  // TODO add checks if it's not a file
   if (error_code == ErrorCode::kErrorNotFound) {
     file_entry = AllocateEntry<FileEntry>(error_code, path.BaseName());
     if (error_code != ErrorCode::kSuccess)
@@ -140,8 +139,12 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
       return nullptr;
     }
   }
-  if (error_code != ErrorCode::kSuccess)
+  else if (error_code != ErrorCode::kSuccess)
     return nullptr;
+  else if (file_entry->type() == Entry::Type::kDirectory) {
+    error_code = ErrorCode::kErrorIsDirectory;
+    return nullptr;
+  }
 
   IFile* file = new (std::nothrow) FileImpl(file_entry, &accessor_, allocator_.get());
   if (file == nullptr)
@@ -151,9 +154,29 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
 }
 
 ErrorCode LinFS::RemoveFile(const char *path_cstr) {
-  (void)path_cstr;
-  // TODO compile
-  return ErrorCode::kErrorNotSupported;
+  ErrorCode error_code;
+
+  Path path = Path::Normalize(path_cstr, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  std::shared_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+  if (entry->type() != Entry::Type::kFile)
+    return ErrorCode::kErrorIsDirectory;
+
+  error_code = cwd->RemoveEntry(entry, &accessor_, allocator_.get());
+  if (error_code != ErrorCode::kSuccess)
+    return error_code;
+
+  ReleaseEntry(entry);
+
+  return ErrorCode::kSuccess;
 }
 
 ErrorCode LinFS::CreateDirectory(const char *path_cstr) {

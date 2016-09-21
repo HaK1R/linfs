@@ -18,7 +18,7 @@ class SectionAllocator {
   SectionAllocator(uint64_t cluster_size, uint64_t total_clusters, std::unique_ptr<NoneEntry> none_entry)
       : cluster_size_(cluster_size), total_clusters_(total_clusters), none_entry_(std::move(none_entry)) {}
 
-  // Allocates section of a preferred |size|.
+  // Allocates section of the preferred |size|.
   // Note that the size of the allocated section may be less than |size|.
   template<typename T = Section>
   T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
@@ -33,7 +33,7 @@ class SectionAllocator {
     T section(total_clusters_ * cluster_size_, required_clusters * cluster_size_, 0);
     error_code = reader_writer->SaveSection(section);
     if (error_code == ErrorCode::kSuccess) {
-      error_code = reader_writer->Write<uint8_t>(0, section.base_offset() - 1);
+      error_code = reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
       if (error_code == ErrorCode::kSuccess)
         total_clusters_ += required_clusters;
     }
@@ -44,6 +44,8 @@ class SectionAllocator {
   void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
 
  private:
+  ErrorCode SetTotalClusters(uint64_t total_clusters, ReaderWriter* reader_writer);
+
   const uint64_t cluster_size_;
   uint64_t total_clusters_;
   std::unique_ptr<NoneEntry> none_entry_;

@@ -24,7 +24,7 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
     return SectionFile{0,0,0}; // TODO compile
 
   cursor += sizeof(EntryLayout::FileHeader);
-  while (cursor > sec_file.data_size() && sec_file.next_offset()) {
+  while (cursor >= sec_file.data_size() && sec_file.next_offset()) {
     cursor -= sec_file.data_size();
     sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset(), error_code);
     if (error_code != ErrorCode::kSuccess)
@@ -41,7 +41,7 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
 size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
   size_t read = 0;
   SectionFile sec_file = CursorToSection(cursor, reader_writer, error_code);
-  while (error_code != ErrorCode::kSuccess) {
+  while (error_code == ErrorCode::kSuccess) {
     size_t rc = sec_file.Read(cursor, buf, buf_size, reader_writer, error_code);
     if (error_code != ErrorCode::kSuccess)
       break;
@@ -66,8 +66,9 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
 
 size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator, ErrorCode& error_code) {
   size_t written = 0;
+  uint64_t old_cursor = cursor;
   SectionFile sec_file = CursorToSection(cursor, reader_writer, error_code);
-  while (error_code != ErrorCode::kSuccess) {
+  while (error_code == ErrorCode::kSuccess) {
     size_t rc = sec_file.Write(cursor, buf, buf_size, reader_writer, error_code);
     if (error_code != ErrorCode::kSuccess)
       break;
@@ -86,13 +87,31 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
       error_code = sec_file.SetNext(next_sec_file.base_offset(), reader_writer);
       if (error_code != ErrorCode::kSuccess)
         allocator->ReleaseSection(next_sec_file, reader_writer);
+
+      sec_file = next_sec_file;
     }
     else
       sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset(), error_code);
     cursor = 0;
   }
 
+  if (error_code == ErrorCode::kSuccess) {
+    if (old_cursor + written > size()) {
+      error_code = SetSize(old_cursor + written, reader_writer);
+      if (error_code != ErrorCode::kSuccess)
+        written = 0;  // Can't update file size. Nothing was written.
+    }
+  }
+
   return written;
+}
+
+ErrorCode FileEntry::SetSize(uint64_t size, ReaderWriter* reader_writer) {
+  ErrorCode error_code = reader_writer->Write<uint64_t>(size,
+                                        base_offset() + offsetof(EntryLayout::FileHeader, size));
+  if (error_code == ErrorCode::kSuccess)
+    size_ = size;
+  return error_code;
 }
 
 }  // namespace linfs
