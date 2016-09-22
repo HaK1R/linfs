@@ -40,7 +40,7 @@ class LinFS : public IFileSystem {
   virtual ~LinFS() = default;
 
   template<typename T, typename... Args> std::unique_ptr<T> AllocateEntry(ErrorCode& error_code, Args&&... args);
-  void ReleaseEntry(std::shared_ptr<Entry> entry);
+  void ReleaseEntry(std::unique_ptr<Entry>& entry);
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
 

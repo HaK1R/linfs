@@ -42,9 +42,9 @@ std::unique_ptr<T> LinFS::AllocateEntry(ErrorCode& error_code, Args&&... args) {
   return entry;
 }
 
-void LinFS::ReleaseEntry(std::shared_ptr<Entry> entry) {
-    // TODO? use unique_ptr
+void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) {
   allocator_->ReleaseSection(entry->section_offset(), &accessor_);
+  entry.reset();
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
@@ -139,7 +139,7 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
 
     error_code = cwd->AddEntry(file.get(), &accessor_, allocator_.get());
     if (error_code != ErrorCode::kSuccess) {
-      ReleaseEntry(std::shared_ptr<Entry>(file.release()));
+      ReleaseEntry(file);
       return nullptr;
     }
   }
@@ -173,7 +173,7 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  std::shared_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
+  std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
   if (entry->type() != Entry::Type::kFile)
@@ -203,13 +203,13 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
   if (cwd->FindEntryByName(path.BaseName(), &accessor_, error_code))
     return ErrorCode::kErrorExists;
 
-  std::shared_ptr<DirectoryEntry> new_dir = AllocateEntry<DirectoryEntry>(error_code, path.BaseName());
+  std::unique_ptr<Entry> directory = AllocateEntry<DirectoryEntry>(error_code, path.BaseName());
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  error_code = cwd->AddEntry(new_dir.get(), &accessor_, allocator_.get());
+  error_code = cwd->AddEntry(directory.get(), &accessor_, allocator_.get());
   if (error_code != ErrorCode::kSuccess) {
-    ReleaseEntry(new_dir);
+    ReleaseEntry(directory);
     return error_code;
   }
 
@@ -228,14 +228,13 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
   if (error_code != ErrorCode::kSuccess)
     return error_code;
 
-  std::shared_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
+  std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
   if (entry->type() != Entry::Type::kDirectory)
     return ErrorCode::kErrorNotDirectory;
 
-  // TODO? static_cast<>
-  bool has_entries = static_pointer_cast<DirectoryEntry>(entry)->HasEntries(&accessor_, error_code);
+  bool has_entries = static_cast<DirectoryEntry*>(entry.get())->HasEntries(&accessor_, error_code);
   if (error_code != ErrorCode::kSuccess)
     return error_code;
   if (has_entries)
