@@ -25,7 +25,7 @@ std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry, 
   return shared_entry;
 }
 
-bool EntryCache::SharedEntryInUse(Entry* entry) {
+bool EntryCache::EntryIsShared(Entry* entry) {
   auto it = shared_.find(entry->base_offset());
   return it != shared_.end() && !it->second.expired();
 }

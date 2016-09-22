@@ -31,6 +31,7 @@ enum class ErrorCode : uint8_t {
   // TODO? remove these
   kErrorNoData,             // error: no data
   kErrorBrokenFile,         // error: file entry is broken
+  kErrorFileBusy,           // error: file is busy
 };
 
 }  // namespace fs

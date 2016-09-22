@@ -14,7 +14,7 @@ namespace linfs {
 class EntryCache {
  public:
   std::shared_ptr<Entry> GetSharedEntry(std::unique_ptr<Entry> entry, ErrorCode& error_code);
-  bool SharedEntryInUse(Entry* entry);
+  bool EntryIsShared(Entry* entry);
 
  private:
   void RemoveExpiredEntries();

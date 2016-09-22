@@ -179,6 +179,9 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
   if (entry->type() != Entry::Type::kFile)
     return ErrorCode::kErrorIsDirectory;
 
+  if (cache_.EntryIsShared(entry.get()))
+    return ErrorCode::kErrorFileBusy;
+
   error_code = cwd->RemoveEntry(entry.get(), &accessor_, allocator_.get());
   if (error_code != ErrorCode::kSuccess)
     return error_code;
