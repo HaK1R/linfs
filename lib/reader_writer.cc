@@ -1,5 +1,6 @@
 #include "lib/reader_writer.h"
 
+#include <mutex>
 #include <string>
 
 #include "lib/entries/directory_entry.h"
@@ -19,6 +20,8 @@ ErrorCode ReaderWriter::Open(const char* device_path, std::ios_base::openmode mo
 }
 
 size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(device_mutex_);
+
   device_.seekg(offset);
   if (!device_.good()) {
     error_code = ErrorCode::kErrorInputOutput;
@@ -31,6 +34,8 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode
 }
 
 size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(device_mutex_);
+
   device_.seekp(offset);
   if (!device_.good()) {
     error_code = ErrorCode::kErrorInputOutput;

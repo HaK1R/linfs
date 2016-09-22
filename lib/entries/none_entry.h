@@ -29,7 +29,7 @@ class NoneEntry : public Entry {
 
   Section GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code);
   ErrorCode PutSection(Section section, ReaderWriter* reader_writer);
-  bool HasSections() const { return head_offset_ != 0; }
+  bool HasSections() const { return head_offset() != 0; }
 
  private:
   ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer);

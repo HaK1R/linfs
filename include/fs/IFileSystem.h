@@ -28,11 +28,40 @@ class IFileSystem {
     k4KB = 12
   };
 
+  // 1. Release a filesystem
+  //
+  // fs->Release();
+  //
+  // Thread safety: Not thread safe
   virtual void Release() = 0;
 
+  // 2. Load a filesystem
+  // ErrorCode error_code = fs->Format("/path/to/device", IFileSystem::ClusterSize::k1KB);
+  // if (error_code == ErrorCode::kSuccess)
+  //   ...
+  // else if (error_code == ErrorCode::kErrorDeviceUnknown)
+  //   ...
+  // else if (error_code == ErrorCode::kErrorInputOutput)
+  //   ...
+  // else
+  //   ...
+  //
+  // Thread safety: Not thread safe
   virtual ErrorCode Load(const char *device_path) = 0;
 
-  // Service routines:
+  // 3. Format a new device
+  //
+  // ErrorCode error_code = fs->Format("/path/to/device", IFileSystem::ClusterSize::k1KB);
+  // if (error_code == ErrorCode::kSuccess)
+  //   ...
+  // else if (error_code == ErrorCode::kErrorDeviceUnknown)
+  //   ...
+  // else if (error_code == ErrorCode::kErrorInputOutput)
+  //   ...
+  // else
+  //   ...
+  //
+  // Thread safety: Not thread safe
   virtual ErrorCode Format(const char *device_path, ClusterSize cluster_size) const = 0;
   virtual ErrorCode Defrag() = 0;
 
@@ -46,6 +75,8 @@ class IFileSystem {
   //   return error_code;
   // ...
   // file->Close();
+  //
+  // Thread safety: Thread safe
   virtual IFile* OpenFile(const char *path, ErrorCode& error_code) = 0;
 
   // 2. Remove a file
@@ -54,6 +85,8 @@ class IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorNotFound)
   //   ...
+  //
+  // Thread safety: Thread safe
   virtual ErrorCode RemoveFile(const char *path) = 0;
 
   // Directory operations:
@@ -65,6 +98,8 @@ class IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorExist)
   //   ...
+  //
+  // Thread safety: Thread safe
   virtual ErrorCode CreateDirectory(const char *path) = 0;
 
   // 2. Remove a directory
@@ -78,6 +113,8 @@ class IFileSystem {
   //   ...
   // else if (error_code == ErrorCode::kErrorDirectoryNotEmpty)
   //   ...
+  //
+  // Thread safety: Thread safe
   virtual ErrorCode RemoveDirectory(const char *path) = 0;
 
   // 3. Iterate over a directory contents
@@ -93,6 +130,8 @@ class IFileSystem {
   //     break;
   //   std::cout << entry << std::endl;
   // }
+  //
+  // Thread safety: Thread safe
   virtual const char* ListDirectory(const char *path, const char *prev_file, char next_file[kNameMax], ErrorCode& error_code) = 0;
 
   // 3.1. Iterate over a directory contents using DirectoryIterator
@@ -111,6 +150,8 @@ class IFileSystem {
   //     return error_code;
   //   std::cout << *it << std::endl;
   // }
+  //
+  // Thread safety: Not thread safe
   class DirectoryIterator : public std::iterator<std::input_iterator_tag, const char*> {
    public:
     DirectoryIterator() = default;

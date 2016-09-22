@@ -1,6 +1,7 @@
 #include "lib/linfs.h"
 
 #include <cstddef>
+#include <mutex>
 #include <utility>
 
 #include "lib/entries/file_entry.h"
@@ -42,6 +43,7 @@ std::unique_ptr<T> LinFS::AllocateEntry(ErrorCode& error_code, Args&&... args) {
 }
 
 void LinFS::ReleaseEntry(std::shared_ptr<Entry> entry) {
+    // TODO? use unique_ptr
   allocator_->ReleaseSection(entry->section_offset(), &accessor_);
 }
 
@@ -119,6 +121,8 @@ ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const
 }
 
 IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
@@ -127,34 +131,39 @@ IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
   if (error_code != ErrorCode::kSuccess)
     return nullptr;
 
-  std::shared_ptr<FileEntry> file_entry = static_pointer_cast<FileEntry>(cwd->FindEntryByName(path.BaseName(), &accessor_, error_code));
+  std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), &accessor_, error_code);
   if (error_code == ErrorCode::kErrorNotFound) {
-    file_entry = AllocateEntry<FileEntry>(error_code, path.BaseName());
+    file = AllocateEntry<FileEntry>(error_code, path.BaseName());
     if (error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    error_code = cwd->AddEntry(file_entry.get(), &accessor_, allocator_.get());
+    error_code = cwd->AddEntry(file.get(), &accessor_, allocator_.get());
     if (error_code != ErrorCode::kSuccess) {
-      ReleaseEntry(file_entry);
+      ReleaseEntry(std::shared_ptr<Entry>(file.release()));
       return nullptr;
     }
   }
   else if (error_code != ErrorCode::kSuccess)
     return nullptr;
-  else if (file_entry->type() == Entry::Type::kDirectory) {
+  else if (file->type() == Entry::Type::kDirectory) {
     error_code = ErrorCode::kErrorIsDirectory;
     return nullptr;
   }
 
-  IFile* file = new (std::nothrow) FileImpl(file_entry, &accessor_, allocator_.get());
-  if (file == nullptr)
+  std::shared_ptr<FileEntry> shared_file = static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file), error_code));
+  if (error_code != ErrorCode::kSuccess)
+    return nullptr;
+
+  IFile* file_desc = new (std::nothrow) FileImpl(shared_file, &accessor_, allocator_.get());
+  if (file_desc == nullptr)
     error_code = ErrorCode::kErrorNoMemory;
 
-  return file;
+  return file_desc;
 }
 
 ErrorCode LinFS::RemoveFile(const char *path_cstr) {
   ErrorCode error_code;
+  std::lock_guard<std::mutex> lock(mutex_);
 
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
@@ -181,6 +190,7 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
 
 ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
   ErrorCode error_code;
+  std::lock_guard<std::mutex> lock(mutex_);
 
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
@@ -208,6 +218,7 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
 
 ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
   ErrorCode error_code;
+  std::lock_guard<std::mutex> lock(mutex_);
 
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
@@ -241,6 +252,8 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
 
 const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
                           char *next_buf, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   Path path = Path::Normalize(path_cstr, error_code);
   if (error_code != ErrorCode::kSuccess)
     return nullptr;

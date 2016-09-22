@@ -1,5 +1,7 @@
 #include "lib/entries/file_entry.h"
 
+#include <mutex>
+
 #include "lib/layout/entry_layout.h"
 
 namespace fs {
@@ -39,6 +41,8 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
 }
 
 size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   size_t read = 0;
   SectionFile sec_file = CursorToSection(cursor, reader_writer, error_code);
   while (error_code == ErrorCode::kSuccess) {
@@ -65,6 +69,8 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
 }
 
 size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   size_t written = 0;
   uint64_t old_cursor = cursor;
   SectionFile sec_file = CursorToSection(cursor, reader_writer, error_code);

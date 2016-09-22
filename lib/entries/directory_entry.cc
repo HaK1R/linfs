@@ -119,6 +119,12 @@ bool DirectoryEntry::HasEntries(ReaderWriter* reader_writer, ErrorCode& error_co
 
 std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
                                                        ReaderWriter* reader_writer,
+                                                       ErrorCode& error_code) {
+  return FindEntryByName(entry_name, reader_writer, error_code, nullptr, nullptr);
+}
+
+std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
+                                                       ReaderWriter* reader_writer,
                                                        ErrorCode& error_code,
                                                        SectionDirectory* section_directory,
                                                        SectionDirectory::Iterator* iterator) {
@@ -164,10 +170,10 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
 
 ErrorCode DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf) {
   ErrorCode error_code;
-  SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
-  SectionDirectory::Iterator it(0);
 
   // TODO? better
+  SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
+  SectionDirectory::Iterator it(0);
   std::unique_ptr<Entry> entry = FindEntryByName(prev, reader_writer, error_code, &sec_dir, &it);
   if (prev == nullptr) {
     // Get first entry.

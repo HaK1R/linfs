@@ -1,8 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
@@ -35,7 +37,9 @@ class FileEntry : public Entry {
   SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code);
   ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer);
 
-  uint64_t size_;
+  std::atomic<uint64_t> size_;
+
+  std::mutex mutex_;
 };
 
 }  // namespace linfs

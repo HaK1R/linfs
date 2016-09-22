@@ -18,8 +18,10 @@ std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
 }
 
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
-  if (!HasSections())
-    return Section{0,0,0}; // TODO throw?
+  if (!HasSections()) {
+    error_code = ErrorCode::kErrorNoMemory;
+    return Section{0,0,0};
+  }
 
   Section head = reader_writer->LoadSection(head_offset(), error_code);
   if (error_code != ErrorCode::kSuccess)

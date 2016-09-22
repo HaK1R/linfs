@@ -31,13 +31,17 @@ class DirectoryEntry : public Entry {
   bool HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code);
   std::unique_ptr<Entry> FindEntryByName(const char *entry_name,
                                          ReaderWriter* reader_writer,
-                                         ErrorCode& error_code,
-                                         SectionDirectory* section_directory = nullptr,
-                                         SectionDirectory::Iterator *iterator = nullptr);
+                                         ErrorCode& error_code);
   ErrorCode GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
 
  private:
   static ErrorCode ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer);
+
+  std::unique_ptr<Entry> FindEntryByName(const char *entry_name,
+                                         ReaderWriter* reader_writer,
+                                         ErrorCode& error_code,
+                                         SectionDirectory* section_directory,
+                                         SectionDirectory::Iterator *iterator);
 };
 
 }  // namespace linfs

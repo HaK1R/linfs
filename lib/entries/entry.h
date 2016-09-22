@@ -28,6 +28,9 @@ class Entry {
   Entry(Type type, uint64_t base_offset)
       : type_(type), base_offset_(base_offset) {}
 
+  // Thread safety is guaranteed by this guy.
+  //std::mutex mutex_;
+
  private:
   const Type type_;
   const uint64_t base_offset_;

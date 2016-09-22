@@ -1,11 +1,13 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "fs/error_code.h"
 #include "fs/IFileSystem.h"
 #include "lib/entries/directory_entry.h"
 #include "lib/entries/entry.h"
+#include "lib/entry_cache.h"
 #include "lib/path.h"
 #include "lib/reader_writer.h"
 #include "lib/section_allocator.h"
@@ -44,6 +46,8 @@ class LinFS : public IFileSystem {
 
   ReaderWriter accessor_;
   std::unique_ptr<SectionAllocator> allocator_;
+  EntryCache cache_;
+  std::mutex mutex_;
   std::shared_ptr<DirectoryEntry> root_entry_;
 };
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -26,7 +27,7 @@ class FileImpl : public IFile {
  private:
   virtual ~FileImpl() = default;
 
-  uint64_t cursor_;
+  std::atomic<uint64_t> cursor_;
   std::shared_ptr<FileEntry> file_entry_;
   ReaderWriter* reader_writer_;
   SectionAllocator* allocator_;

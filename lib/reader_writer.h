@@ -6,6 +6,7 @@
 #include <ios>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <type_traits>
 
 #include "fs/error_code.h"
@@ -124,6 +125,7 @@ class ReaderWriter {
     return error_code;
   }
 
+  std::mutex device_mutex_;
   std::fstream device_;
 };
 

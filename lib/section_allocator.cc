@@ -11,6 +11,8 @@ namespace fs {
 namespace linfs {
 
 Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   if (none_entry_->HasSections())
     return none_entry_->GetSection(size, reader_writer, error_code);
 
@@ -21,20 +23,23 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
   if (error_code == ErrorCode::kSuccess) {
     error_code = reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
     if (error_code == ErrorCode::kSuccess)
-      total_clusters_ += required_clusters;
+      error_code = SetTotalClusters(total_clusters_ + required_clusters, reader_writer);
   }
   return section;
 }
 
 void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* reader_writer) {
+  ErrorCode error_code;
+  std::lock_guard<std::mutex> lock(mutex_);
+
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
-  if (last_cluster_offset == section.base_offset()) {
-    total_clusters_ -= section.size() / cluster_size_;
-  } else {
-    ErrorCode error_code = none_entry_->PutSection(section, reader_writer);
-    if (error_code != ErrorCode::kSuccess)
-      std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size() << std::endl;
-  }
+  if (last_cluster_offset == section.base_offset())
+    error_code = SetTotalClusters(total_clusters_ - section.size() / cluster_size_, reader_writer);
+  else
+    error_code = none_entry_->PutSection(section, reader_writer);
+
+  if (error_code != ErrorCode::kSuccess)
+    std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size() << std::endl;
 }
 
 void SectionAllocator::ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer) {
