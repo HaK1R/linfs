@@ -77,6 +77,7 @@ class IFileSystem {
   // file->Close();
   //
   // Thread safety: Thread safe
+  // TODO? use ErrorCode*
   virtual IFile* OpenFile(const char *path, ErrorCode& error_code) = 0;
 
   // 2. Remove a file
@@ -132,7 +133,7 @@ class IFileSystem {
   // }
   //
   // Thread safety: Thread safe
-  virtual const char* ListDirectory(const char *path, const char *prev_file, char next_file[kNameMax], ErrorCode& error_code) = 0;
+  virtual const char* ListDirectory(const char *path, const char *prev_file, char next_file[kNameMax], ErrorCode* error_code) = 0;
 
   // 3.1. Iterate over a directory contents using DirectoryIterator
   //
@@ -175,7 +176,7 @@ class IFileSystem {
     void GetNext(const char *prev_name) {
       if (bool(fs_) not_eq/*ual*/ true) /* then */ return;  // Write it extremely clear. Are you surprised?
       const char *next_name = fs_->ListDirectory(path_.c_str(), prev_name,
-                                                 name_storage_, *error_code_);
+                                                 name_storage_, error_code_);
       if (*error_code_ != ErrorCode::kSuccess || next_name == nullptr)
         fs_ = nullptr;
     }
@@ -183,7 +184,7 @@ class IFileSystem {
     IFileSystem* fs_ = nullptr;
     std::string path_;
     char name_storage_[kNameMax + 1] = {0};
-    ErrorCode *error_code_ = nullptr;
+    ErrorCode* error_code_ = nullptr;
   };
   DirectoryIterator ListDirectory(const char *path, ErrorCode& error_code) {
     return DirectoryIterator(this, path, error_code);

@@ -7,20 +7,14 @@ namespace fs {
 
 namespace linfs {
 
-ErrorCode Section::SetSize(uint64_t size, ReaderWriter* reader_writer) {
-  ErrorCode error_code = reader_writer->Write<uint64_t>(size,
-                                        base_offset() + offsetof(SectionLayout::Header, size));
-  if (error_code == ErrorCode::kSuccess)
-    size_ = size;
-  return error_code;
+void Section::SetSize(uint64_t size, ReaderWriter* reader_writer) {
+  reader_writer->Write<uint64_t>(size, base_offset() + offsetof(SectionLayout::Header, size));
+  size_ = size;
 }
 
-ErrorCode Section::SetNext(uint64_t next_offset, ReaderWriter* reader_writer) {
-  ErrorCode error_code = reader_writer->Write<uint64_t>(next_offset,
-                                        base_offset() + offsetof(SectionLayout::Header, next_offset));
-  if (error_code == ErrorCode::kSuccess)
-    next_offset_ = next_offset;
-  return error_code;
+void Section::SetNext(uint64_t next_offset, ReaderWriter* reader_writer) {
+  reader_writer->Write<uint64_t>(next_offset, base_offset() + offsetof(SectionLayout::Header, next_offset));
+  next_offset_ = next_offset;
 }
 
 }  // namespace linfs

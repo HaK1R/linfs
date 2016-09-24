@@ -17,22 +17,21 @@ class NoneEntry : public Entry {
  public:
   static std::unique_ptr<NoneEntry> Create(uint64_t entry_offset,
                                            uint64_t entry_size,
-                                           ReaderWriter* writer,
-                                           ErrorCode& error_code);
+                                           ReaderWriter* writer);
 
   NoneEntry(uint64_t base_offset, uint64_t head_offset)
       : Entry(Type::kNone, base_offset), head_offset_(head_offset) {}
   ~NoneEntry() override = default;
 
   uint64_t head_offset() const { return head_offset_; }
-  // TODO section_offset() { throw std::logic_exception(); }
+  uint64_t section_offset() { throw std::logic_error("NoneEntry::section_offset"); }
 
-  Section GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code);
-  ErrorCode PutSection(Section section, ReaderWriter* reader_writer);
+  Section GetSection(uint64_t max_size, ReaderWriter* reader_writer);
+  void PutSection(Section section, ReaderWriter* reader_writer);
   bool HasSections() const { return head_offset() != 0; }
 
  private:
-  ErrorCode SetHead(uint64_t head_offset, ReaderWriter* reader_writer);
+  void SetHead(uint64_t head_offset, ReaderWriter* reader_writer);
 
   uint64_t head_offset_;
 };

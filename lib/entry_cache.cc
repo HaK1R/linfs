@@ -6,9 +6,7 @@ namespace fs {
 
 namespace linfs {
 
-std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry, ErrorCode& error_code) {
-  error_code = ErrorCode::kSuccess;
-
+std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry) {
   std::shared_ptr<Entry> shared_entry = std::move(entry);
 
   auto it = shared_.emplace(shared_entry->base_offset(), std::weak_ptr<Entry>(shared_entry));
@@ -25,7 +23,7 @@ std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry, 
   return shared_entry;
 }
 
-bool EntryCache::EntryIsShared(Entry* entry) {
+bool EntryCache::EntryIsShared(Entry* entry) noexcept {
   auto it = shared_.find(entry->base_offset());
   return it != shared_.end() && !it->second.expired();
 }
@@ -42,7 +40,7 @@ bool EntryCache::EntryIsShared(Entry* entry) {
 //      shared_.erase(it);
 //}
 
-void EntryCache::RemoveExpiredEntries() {
+void EntryCache::RemoveExpiredEntries() noexcept {
   auto it = shared_.begin();
   while (it != shared_.end())
     if (it->second.expired())

@@ -18,28 +18,25 @@ class DirectoryEntry : public Entry {
   static std::unique_ptr<DirectoryEntry> Create(uint64_t entry_offset,
                                                 uint64_t entry_size,
                                                 ReaderWriter* writer,
-                                                ErrorCode& error_code,
                                                 const char *name);
 
   DirectoryEntry(uint64_t base_offset) : Entry(Type::kDirectory, base_offset) {}
   ~DirectoryEntry() override = default;
 
-  ErrorCode AddEntry(const Entry* entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
-  ErrorCode RemoveEntry(const Entry* entry,
-                        ReaderWriter* reader_writer,
-                        SectionAllocator* allocator);
-  bool HasEntries(ReaderWriter* reader_writer, ErrorCode& error_code);
+  void AddEntry(const Entry* entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
+  bool RemoveEntry(const Entry* entry,
+                   ReaderWriter* reader_writer,
+                   SectionAllocator* allocator);
+  bool HasEntries(ReaderWriter* reader_writer);
   std::unique_ptr<Entry> FindEntryByName(const char *entry_name,
-                                         ReaderWriter* reader_writer,
-                                         ErrorCode& error_code);
-  ErrorCode GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
+                                         ReaderWriter* reader_writer);
+  const char* GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf);
 
  private:
-  static ErrorCode ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer);
+  static void ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer);
 
   std::unique_ptr<Entry> FindEntryByName(const char *entry_name,
                                          ReaderWriter* reader_writer,
-                                         ErrorCode& error_code,
                                          SectionDirectory* section_directory,
                                          SectionDirectory::Iterator *iterator);
 };

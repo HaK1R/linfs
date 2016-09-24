@@ -53,8 +53,8 @@ class DeviceLayout {
   static_assert(std::is_standard_layout<Body>::value,
                 "DeviceLayout::Body must be a standard-layout type");
 
-  static ErrorCode ParseHeader(ReaderWriter* reader, Header& header);
-  static ErrorCode WriteHeader(Header header, ReaderWriter* writer);
+  static Header ParseHeader(ReaderWriter* reader, ErrorCode& error_code);
+  static void WriteHeader(Header header, ReaderWriter* writer);
 };
 
 // TODO? ReaderWriter& operator<<(ReaderWriter& writer, DeviceLayout::Header header);

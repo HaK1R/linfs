@@ -20,8 +20,9 @@ class FileImpl : public IFile {
   FileImpl(std::shared_ptr<FileEntry> file_entry, ReaderWriter* reader_writer, SectionAllocator* allocator)
       : cursor_(0), file_entry_(file_entry), reader_writer_(reader_writer), allocator_(allocator) {}
 
-  size_t Read(char *buf, size_t buf_size) override;
-  size_t Write(const char *buf, size_t buf_size) override;
+  // |buf| and |error_code| are always not null, otherwise UB
+  size_t Read(char *buf, size_t buf_size, ErrorCode* error_code) override;
+  size_t Write(const char *buf, size_t buf_size, ErrorCode* error_code) override;
   void Close() override;
 
  private:

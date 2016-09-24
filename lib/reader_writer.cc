@@ -9,6 +9,7 @@
 #include "lib/entries/none_entry.h"
 #include "lib/layout/entry_layout.h"
 #include "lib/layout/section_layout.h"
+#include "lib/util/format_error.h"
 
 namespace fs {
 
@@ -16,51 +17,39 @@ namespace linfs {
 
 ErrorCode ReaderWriter::Open(const char* device_path, std::ios_base::openmode mode) {
   device_.open(device_path, mode | std::ios_base::binary);
-  return device_.good() ? ErrorCode::kSuccess : ErrorCode::kErrorDeviceUnknown;
+  return device_.is_open() ? ErrorCode::kSuccess : ErrorCode::kErrorDeviceUnknown;
 }
 
-size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size, ErrorCode& error_code) {
+size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {
   std::lock_guard<std::mutex> lock(device_mutex_);
 
   device_.seekg(offset);
-  if (!device_.good()) {
-    error_code = ErrorCode::kErrorInputOutput;
-    return 0;
-  }
-
-  device_.read(buf, buf_size);
-  error_code = device_.good() ? ErrorCode::kSuccess : ErrorCode::kErrorInputOutput;
-  return device_.gcount();
-}
-
-size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset, ErrorCode& error_code) {
-  std::lock_guard<std::mutex> lock(device_mutex_);
-
-  device_.seekp(offset);
-  if (!device_.good()) {
-    error_code = ErrorCode::kErrorInputOutput;
-    return 0;
-  }
-
-  device_.write(buf, buf_size);
-  if (!device_.good()) {
-    error_code = ErrorCode::kErrorInputOutput;
-    return 0;
-  }
-
-  error_code = ErrorCode::kSuccess;
+  if (device_.good())
+    device_.read(buf, buf_size);
+  if (device_.eof())
+    throw FormatError();  // no data to read
+  if (!device_.good())
+    throw std::ios_base::failure("");
   return buf_size;
 }
 
-ErrorCode ReaderWriter::SaveSection(Section section) {
-  SectionLayout::Header header = {section.size(), section.next_offset()};
-  return Write<SectionLayout::Header>(header, section.base_offset());
+size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset) {
+  std::lock_guard<std::mutex> lock(device_mutex_);
+
+  device_.seekp(offset);
+  device_.write(buf, buf_size);
+  if (!device_.good())
+    throw std::ios_base::failure("");
+  return buf_size;
 }
 
-std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t entry_offset, ErrorCode& error_code, char* name_buf) {
-  EntryLayout::HeaderUnion entry_header = Read<EntryLayout::HeaderUnion>(entry_offset, error_code);
-  if (error_code != ErrorCode::kSuccess)
-    return nullptr;
+void ReaderWriter::SaveSection(Section section) {
+  SectionLayout::Header header = {section.size(), section.next_offset()};
+  Write<SectionLayout::Header>(header, section.base_offset());
+}
+
+std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t entry_offset, char* name_buf) {
+  EntryLayout::HeaderUnion entry_header = Read<EntryLayout::HeaderUnion>(entry_offset);
 
   // TODO check endianness
   switch (static_cast<Entry::Type>(entry_header.common.type)) {
@@ -78,8 +67,8 @@ std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t entry_offset, ErrorCode&
       }
       return std::make_unique<FileEntry>(entry_offset, uint64_t(entry_header.file.size));
   }
-  error_code = ErrorCode::kErrorFormat;
-  return nullptr;
+
+  throw FormatError();  // unknown entry type
 }
 
 }  // namespace linfs

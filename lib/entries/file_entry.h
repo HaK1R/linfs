@@ -21,7 +21,6 @@ class FileEntry : public Entry {
   static std::unique_ptr<FileEntry> Create(uint64_t entry_offset,
                                            uint64_t entry_size,
                                            ReaderWriter* writer,
-                                           ErrorCode& error_code,
                                            const char *name);
 
   FileEntry(uint64_t base_offset, uint64_t size)
@@ -30,12 +29,12 @@ class FileEntry : public Entry {
 
   uint64_t size() const { return size_; }
 
-  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer, ErrorCode& error_code);
-  size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator, ErrorCode& error_code);
+  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer);
+  size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator);
 
  private:
-  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer, ErrorCode& error_code);
-  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer);
+  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer);
+  void SetSize(uint64_t size, ReaderWriter* reader_writer);
 
   std::atomic<uint64_t> size_;
 

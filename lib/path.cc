@@ -10,7 +10,7 @@ namespace linfs {
 
 Path Path::Normalize(const char *path_cstr, ErrorCode& error_code) {
   std::string normalized;
-  normalized.reserve(kNameMax + 1);
+  normalized.reserve(kPathMax + 1);
 
   for (const char *pch = path_cstr, *name_start = path_cstr; *pch != '\0'; ++pch) {
     switch (*pch) {

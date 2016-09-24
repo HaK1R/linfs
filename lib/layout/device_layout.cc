@@ -6,29 +6,30 @@ namespace fs {
 
 namespace linfs {
 
-ErrorCode DeviceLayout::ParseHeader(ReaderWriter* reader, Header& header) {
-  ErrorCode error_code;
-  Header from_file = reader->Read<DeviceLayout::Header>(0, error_code);
-  if (error_code != ErrorCode::kSuccess)
-    return ErrorCode::kErrorFormat;
+DeviceLayout::Header DeviceLayout::ParseHeader(ReaderWriter* reader, ErrorCode& error_code) {
+  Header from_file = reader->Read<DeviceLayout::Header>(0);
 
   Header default_header;
-  if (memcmp(from_file.identifier, default_header.identifier, sizeof from_file.identifier) != 0)
-    return ErrorCode::kErrorInvalidSignature;
+  if (memcmp(from_file.identifier, default_header.identifier, sizeof from_file.identifier) != 0) {
+    error_code = ErrorCode::kErrorInvalidSignature;
+    return from_file;
+  }
 
   if (from_file.version.major > default_header.version.major ||
       (from_file.version.major == default_header.version.major &&
-       from_file.version.minor > default_header.version.minor))
-    return ErrorCode::kErrorNotSupported;
+       from_file.version.minor > default_header.version.minor)) {
+    error_code = ErrorCode::kErrorNotSupported;
+    return from_file;
+  }
 
   // TODO fix endianness
-  header = from_file;
-  return ErrorCode::kSuccess;
+  error_code = ErrorCode::kSuccess;
+  return from_file;
 }
 
-ErrorCode DeviceLayout::WriteHeader(Header header, ReaderWriter* writer) {
+void DeviceLayout::WriteHeader(Header header, ReaderWriter* writer) {
   // TODO fix endianness
-  return writer->Write<DeviceLayout::Header>(header, 0);
+  writer->Write<DeviceLayout::Header>(header, 0);
 }
 
 }  // namespace linfs

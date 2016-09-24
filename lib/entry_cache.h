@@ -13,11 +13,11 @@ namespace linfs {
 
 class EntryCache {
  public:
-  std::shared_ptr<Entry> GetSharedEntry(std::unique_ptr<Entry> entry, ErrorCode& error_code);
-  bool EntryIsShared(Entry* entry);
+  std::shared_ptr<Entry> GetSharedEntry(std::unique_ptr<Entry> entry);
+  bool EntryIsShared(Entry* entry) noexcept;
 
  private:
-  void RemoveExpiredEntries();
+  void RemoveExpiredEntries() noexcept;
 
   std::map<uint64_t, std::weak_ptr<Entry>> shared_;
 };

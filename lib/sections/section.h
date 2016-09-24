@@ -30,8 +30,8 @@ class Section {
   friend class DirectoryEntry;
   friend class FileEntry;
   friend class NoneEntry;
-  ErrorCode SetSize(uint64_t size, ReaderWriter* reader_writer);
-  ErrorCode SetNext(uint64_t next_offset, ReaderWriter* reader_writer);
+  void SetSize(uint64_t size, ReaderWriter* reader_writer);
+  void SetNext(uint64_t next_offset, ReaderWriter* reader_writer);
 
  private:
   /*TODO? const*/uint64_t base_offset_;

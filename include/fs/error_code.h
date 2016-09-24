@@ -9,6 +9,7 @@ namespace fs {
 enum class ErrorCode : uint8_t {
   // Common:
   kSuccess = 0,             // ok: no error
+  kErrorUnknown,            // error:  (sorry, we don't know it)
   kErrorNoMemory,           // error: no memory
   kErrorExists,             // error: file or directory already exists
   kErrorNotFound,           // error: file or directory not found

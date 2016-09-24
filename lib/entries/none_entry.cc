@@ -1,5 +1,7 @@
 #include "lib/entries/none_entry.h"
 
+#include <cassert>
+
 #include "lib/layout/entry_layout.h"
 
 namespace fs {
@@ -8,65 +10,39 @@ namespace linfs {
 
 std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
                                              uint64_t /* entry_size */,
-                                             ReaderWriter* writer,
-                                             ErrorCode& error_code) {
-  error_code = writer->Write<EntryLayout::NoneHeader>(EntryLayout::NoneHeader{0}, entry_offset);
-  if (error_code != ErrorCode::kSuccess)
-    return nullptr;
-
+                                             ReaderWriter* writer) {
+  writer->Write<EntryLayout::NoneHeader>(EntryLayout::NoneHeader{0}, entry_offset);
   return std::make_unique<NoneEntry>(entry_offset, 0);
 }
 
-Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer, ErrorCode& error_code) {
-  if (!HasSections()) {
-    error_code = ErrorCode::kErrorNoMemory;
-    return Section{0,0,0};
-  }
+Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer) {
+  assert(HasSections() && "there are no sections in none entry");
 
-  Section head = reader_writer->LoadSection(head_offset(), error_code);
-  if (error_code != ErrorCode::kSuccess)
-    return Section{0,0,0};
-
+  Section head = reader_writer->LoadSection(head_offset());
   if (head.size() > max_size) {
     Section result(head.base_offset() + head.size() - max_size, max_size, 0);
-    error_code = reader_writer->SaveSection(result);
-    if (error_code != ErrorCode::kSuccess)
-      return Section{0,0,0};
-    error_code = head.SetSize(head.size() - max_size, reader_writer);
-    if (error_code != ErrorCode::kSuccess)
-      return Section{0,0,0};
+    reader_writer->SaveSection(result);
+    head.SetSize(head.size() - max_size, reader_writer);
     return result;
   }
   else {
-    error_code = SetHead(head.next_offset(), reader_writer);
-    if (error_code != ErrorCode::kSuccess)
-      return Section{0,0,0};
+    SetHead(head.next_offset(), reader_writer);
     return head;
   }
 }
 
-ErrorCode NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
+void NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   // TODO lock-free?
-  ErrorCode error_code = ErrorCode::kSuccess;
   Section last = section;
-  while (last.next_offset() != 0) {
-    last = reader_writer->LoadSection(last.next_offset(), error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code; // Leaked chain of sections
-  }
-
-  error_code = last.SetNext(head_offset(), reader_writer);
-  if (error_code != ErrorCode::kSuccess)
-    return error_code;  // Can't flush section with a new header; Drop broken section
-  return SetHead(section.base_offset(), reader_writer);
+  while (last.next_offset() != 0)
+    last = reader_writer->LoadSection(last.next_offset());
+  last.SetNext(head_offset(), reader_writer);
+  SetHead(section.base_offset(), reader_writer);
 }
 
-ErrorCode NoneEntry::SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
-  ErrorCode error_code = reader_writer->Write<uint64_t>(head_offset,
-                                        base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
-  if (error_code == ErrorCode::kSuccess)
-    head_offset_ = head_offset;
-  return error_code;
+void NoneEntry::SetHead(uint64_t head_offset, ReaderWriter* reader_writer) {
+  reader_writer->Write<uint64_t>(head_offset, base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
+  head_offset_ = head_offset;
 }
 
 }  // namespace linfs

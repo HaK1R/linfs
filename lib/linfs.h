@@ -34,13 +34,13 @@ class LinFS : public IFileSystem {
   ErrorCode CreateDirectory(const char *path) override;
   ErrorCode RemoveDirectory(const char *path) override;
   const char* ListDirectory(const char *path, const char *prev,
-                            char *next_buf, ErrorCode& error_code) override;
+                            char *next_buf, ErrorCode* error_code) override;
 
  private:
   virtual ~LinFS() = default;
 
-  template<typename T, typename... Args> std::unique_ptr<T> AllocateEntry(ErrorCode& error_code, Args&&... args);
-  void ReleaseEntry(std::unique_ptr<Entry>& entry);
+  template<typename T, typename... Args> std::unique_ptr<T> AllocateEntry(Args&&... args);
+  void ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept;
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
 

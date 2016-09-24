@@ -21,20 +21,20 @@ class SectionAllocator {
 
   // Allocates section of the preferred |size|.
   // Note that the size of the allocated section may be less than |size|.
-  Section AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code);
+  Section AllocateSection(uint64_t size, ReaderWriter* reader_writer);
   template<typename T>
-  T AllocateSection(uint64_t size, ReaderWriter* reader_writer, ErrorCode& error_code) {
+  T AllocateSection(uint64_t size, ReaderWriter* reader_writer) {
       static_assert(std::is_base_of<Section, T>::value,
                     "T must be derived from Section");
-      Section section = AllocateSection(size, reader_writer, error_code);
+      Section section = AllocateSection(size, reader_writer);
       return T(section.base_offset(), section.size(), section.next_offset());
   }
 
-  void ReleaseSection(const Section& section, ReaderWriter* reader_writer);
-  void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer);
+  void ReleaseSection(const Section& section, ReaderWriter* reader_writer) noexcept;
+  void ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer) noexcept;
 
  private:
-  ErrorCode SetTotalClusters(uint64_t total_clusters, ReaderWriter* reader_writer);
+  void SetTotalClusters(uint64_t total_clusters, ReaderWriter* reader_writer);
 
   const uint64_t cluster_size_;
   uint64_t total_clusters_;
