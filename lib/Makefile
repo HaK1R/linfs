@@ -1,11 +1,11 @@
 CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -Werror -fpic -fno-rtti
 LDFLAGS += -shared
 
-SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc path.cc reader_writer.cc section_allocator.cc
+SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc reader_writer.cc section_allocator.cc
 SRCS += $(addprefix entries/,directory_entry.cc file_entry.cc none_entry.cc)
 SRCS += $(addprefix layout/,device_layout.cc)
 SRCS += $(addprefix sections/,section.cc section_directory.cc section_file.cc)
-SRCS += $(addprefix util/,exception_handler.cc format_error.cc)
+SRCS += $(addprefix util/,exception_handler.cc format_error.cc path.cc)
 
 OBJS = $(SRCS:.cc=.o)
 

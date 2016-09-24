@@ -9,7 +9,6 @@ namespace fs {
 
 namespace linfs {
 
-// TODO? move to util/
 class Path {
  public:
   class Name : protected std::string {
