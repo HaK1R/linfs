@@ -10,7 +10,7 @@
 #include "lib/entries/none_entry.h"
 #include "lib/layout/entry_layout.h"
 #include "lib/layout/section_layout.h"
-#include "lib/util/format_error.h"
+#include "lib/utils/format_exception.h"
 
 namespace fs {
 
@@ -28,7 +28,7 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {
   if (device_.good())
     device_.read(buf, buf_size);
   if (device_.eof())
-    throw FormatError();  // no data to read
+    throw FormatException();  // no data to read
   if (!device_.good())
     throw std::ios_base::failure("");
   return buf_size;
@@ -69,7 +69,7 @@ std::unique_ptr<Entry> ReaderWriter::LoadEntry(uint64_t entry_offset, char* name
       return std::make_unique<FileEntry>(entry_offset, uint64_t(entry_header.file.size));
   }
 
-  throw FormatError();  // unknown entry type
+  throw FormatException();  // unknown entry type
 }
 
 }  // namespace linfs

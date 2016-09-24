@@ -8,7 +8,7 @@
 #include "lib/entries/file_entry.h"
 #include "lib/file_impl.h"
 #include "lib/layout/device_layout.h"
-#include "lib/util/exception_handler.h"
+#include "lib/utils/exception_handler.h"
 
 namespace fs {
 

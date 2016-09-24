@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "lib/layout/entry_layout.h"
-#include "lib/util/format_error.h"
+#include "lib/utils/format_exception.h"
 
 namespace fs {
 
@@ -26,7 +26,7 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
   }
 
   if (cursor >= sec_file.data_size())
-    throw FormatError();  // file size is smaller than expected
+    throw FormatException();  // file size is smaller than expected
 
   return sec_file;
 }
@@ -46,7 +46,7 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
       break;
 
     if (!sec_file.next_offset())
-      throw FormatError();  // file size is smaller than expected
+      throw FormatException();  // file size is smaller than expected
 
     sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset());
     // TODO? return already read data.

@@ -8,7 +8,7 @@
 #include "lib/entries/directory_entry.h"
 #include "lib/entries/entry.h"
 #include "lib/entry_cache.h"
-#include "lib/util/path.h"
+#include "lib/utils/path.h"
 #include "lib/reader_writer.h"
 #include "lib/section_allocator.h"
 

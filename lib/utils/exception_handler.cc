@@ -1,10 +1,10 @@
-#include "lib/util/exception_handler.h"
+#include "lib/utils/exception_handler.h"
 
 #include <cassert>
 #include <ios>
 #include <new>
 
-#include "lib/util/format_error.h"
+#include "lib/utils/format_exception.h"
 
 namespace fs {
 
@@ -17,7 +17,7 @@ ErrorCode ExceptionHandler::ToErrorCode(std::exception_ptr exception_pointer) no
     return ErrorCode::kErrorNoMemory;
   } catch (const std::ios_base::failure&) {
     return ErrorCode::kErrorInputOutput;
-  } catch (const FormatError&) {
+  } catch (const FormatException&) {
     return ErrorCode::kErrorFormat;
   } catch (...) {
     assert(0 && "caught unknown exception");

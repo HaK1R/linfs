@@ -6,10 +6,9 @@ namespace fs {
 
 namespace linfs {
 
-// TODO? rename FormatException, FormatErrorException
-class FormatError : public std::exception {
+class FormatException : public std::exception {
  public:
-  ~FormatError() noexcept override;
+  ~FormatException() noexcept override;
 
   const char* what() const noexcept override;
 };

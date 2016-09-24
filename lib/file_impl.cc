@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "fs/error_code.h"
-#include "lib/util/exception_handler.h"
+#include "lib/utils/exception_handler.h"
 
 namespace fs {
 

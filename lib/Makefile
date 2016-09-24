@@ -5,7 +5,7 @@ SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc reader_writer.cc se
 SRCS += $(addprefix entries/,directory_entry.cc file_entry.cc none_entry.cc)
 SRCS += $(addprefix layout/,device_layout.cc)
 SRCS += $(addprefix sections/,section.cc section_directory.cc section_file.cc)
-SRCS += $(addprefix util/,exception_handler.cc format_error.cc path.cc)
+SRCS += $(addprefix utils/,exception_handler.cc format_exception.cc path.cc)
 
 OBJS = $(SRCS:.cc=.o)
 
