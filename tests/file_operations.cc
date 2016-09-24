@@ -7,8 +7,8 @@
 BOOST_AUTO_TEST_SUITE(FileOperationsTestSuite)
 
 using fs::ErrorCode;
-using fs::IFile;
-using fs::IFileSystem;
+using fs::FileInterface;
+using fs::FilesystemInterface;
 
 BOOST_FIXTURE_TEST_CASE(open_one_file, LoadedFSFixture) {
   BOOST_CHECK_NO_THROW(file = fs->OpenFile(".profile", ec));
@@ -17,7 +17,7 @@ BOOST_FIXTURE_TEST_CASE(open_one_file, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(open_two_files, LoadedFSFixture) {
-  IFile *file1, *file2;
+  FileInterface *file1, *file2;
   BOOST_REQUIRE_NO_THROW(file1 = fs->OpenFile("1", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
 
@@ -237,7 +237,7 @@ BOOST_FIXTURE_TEST_CASE(write_many_bytes_many_open, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(write_many_bytes_two_files, LoadedFSFixture) {
-  IFile *file1, *file2;
+  FileInterface *file1, *file2;
   BOOST_REQUIRE_NO_THROW(file1 = fs->OpenFile("1", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   BOOST_REQUIRE_NO_THROW(file2 = fs->OpenFile("2", ec));
@@ -452,7 +452,7 @@ BOOST_FIXTURE_TEST_CASE(read_many_bytes_many_read, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(read_many_bytes_two_files, LoadedFSFixture) {
-  IFile *file1, *file2;
+  FileInterface *file1, *file2;
   BOOST_REQUIRE_NO_THROW(file1 = fs->OpenFile("1", ec));
   BOOST_REQUIRE(ec == ErrorCode::kSuccess);
   BOOST_REQUIRE_NO_THROW(file2 = fs->OpenFile("2", ec));

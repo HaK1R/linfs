@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <type_traits>
 
-#include "fs/IFileSystem.h"
+#include "fs/limits.h"
 #include "lib/entries/entry.h"
 
 namespace fs {

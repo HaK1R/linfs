@@ -1,5 +1,6 @@
 #include "lib/reader_writer.h"
 
+#include <cstring>
 #include <mutex>
 #include <string>
 

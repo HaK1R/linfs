@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include "fs/IFileSystem.h"
+#include "fs/limits.h"
 
 namespace fs {
 

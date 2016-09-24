@@ -7,8 +7,8 @@
 BOOST_AUTO_TEST_SUITE(DirectoryOperationsTestSuite)
 
 using fs::ErrorCode;
-using fs::IFile;
-using fs::IFileSystem;
+using fs::FileInterface;
+using fs::FilesystemInterface;
 
 BOOST_FIXTURE_TEST_CASE(create_one_dir, LoadedFSFixture) {
   BOOST_CHECK_NO_THROW(ec = fs->CreateDirectory("home"));
@@ -208,7 +208,7 @@ BOOST_FIXTURE_TEST_CASE(remove_dir_if_already_removed, LoadedFSFixture) {
 
 void CheckDirectoryContent(DefaultFSFixture* fxt, const char* dir_name,
                            std::vector<std::string> entries) {
-  IFileSystem::DirectoryIterator it, end;
+  FilesystemInterface::DirectoryIterator it, end;
   BOOST_CHECK_NO_THROW(it = fxt->fs->ListDirectory(dir_name, fxt->ec));
   BOOST_CHECK(fxt->ec == ErrorCode::kSuccess);
   for (auto entry : entries) {
@@ -282,7 +282,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_one_dir_that_was_removed, LoadedFSFixture)
 }
 
 BOOST_FIXTURE_TEST_CASE(list_dir_if_doesnt_exist, LoadedFSFixture) {
-  IFileSystem::DirectoryIterator it;
+  FilesystemInterface::DirectoryIterator it;
   BOOST_CHECK_NO_THROW(it = fs->ListDirectory("path doesn't exist", ec));
   BOOST_CHECK(ec == ErrorCode::kErrorNotFound);
 }
@@ -295,7 +295,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_adding_new_ones, LoadedFSF
   }
 
   // 1. create directory iterator
-  IFileSystem::DirectoryIterator it, end;
+  FilesystemInterface::DirectoryIterator it, end;
   BOOST_CHECK_NO_THROW(it = fs->ListDirectory("/", ec));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 
@@ -346,7 +346,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   }
 
   // 1. create directory iterator
-  IFileSystem::DirectoryIterator it, end;
+  FilesystemInterface::DirectoryIterator it, end;
   BOOST_CHECK_NO_THROW(it = fs->ListDirectory("/", ec));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 

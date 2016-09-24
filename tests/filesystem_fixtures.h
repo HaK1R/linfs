@@ -8,8 +8,8 @@
 
 struct DefaultFSFixture {
   fs::ErrorCode ec;
-  fs::IFile* file;
-  fs::IFileSystem* fs;
+  fs::FileInterface* file;
+  fs::FilesystemInterface* fs;
 };
 
 struct CreatedFSFixture : DefaultFSFixture {
@@ -29,7 +29,7 @@ struct CreatedFSFixture : DefaultFSFixture {
 };
 
 struct FormattedFSFixture : CreatedFSFixture {
-  FormattedFSFixture(fs::IFileSystem::ClusterSize cluster_size = fs::IFileSystem::ClusterSize::k1KB) {
+  FormattedFSFixture(fs::FilesystemInterface::ClusterSize cluster_size = fs::FilesystemInterface::ClusterSize::k1KB) {
     BOOST_REQUIRE_NO_THROW(ec = fs->Format(device_path(), cluster_size));
     BOOST_REQUIRE(ec == fs::ErrorCode::kSuccess);
   }

@@ -14,8 +14,8 @@
 
 namespace fs {
 
-IFileSystem* CreateLinFS(ErrorCode* error_code) {
-  IFileSystem* result = new (std::nothrow) linfs::LinFS;
+FilesystemInterface* CreateLinFS(ErrorCode* error_code) {
+  FilesystemInterface* result = new (std::nothrow) linfs::LinFS;
   if (error_code)
     *error_code = result != nullptr ? ErrorCode::kSuccess : ErrorCode::kErrorNoMemory;
   return result;

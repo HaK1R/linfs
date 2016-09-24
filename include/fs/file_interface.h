@@ -1,4 +1,4 @@
-// IFile.h -- Interface for File class
+// file_interface.h -- Interface for File class
 
 #pragma once
 
@@ -8,7 +8,7 @@
 
 namespace fs {
 
-class IFile {
+class FileInterface {
  public:
   virtual size_t Read(char *buf, size_t buf_size, ErrorCode* error_code = nullptr) = 0;
   virtual size_t Write(const char *buf, size_t buf_size, ErrorCode* error_code = nullptr) = 0;

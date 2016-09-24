@@ -124,7 +124,7 @@ ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const
   }
 }
 
-IFile* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
+FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   try {

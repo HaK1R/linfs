@@ -1,12 +1,12 @@
-// LinFS.h -- Realization of IFileSystem interface for in-file FS
+// LinFS.h -- Realization of FileSystem interface for in-file FS
 
 #pragma once
 
 #include "fs/error_code.h"
-#include "fs/IFileSystem.h"
+#include "fs/filesystem_interface.h"
 
 namespace fs {
 
-extern "C" IFileSystem* CreateLinFS(ErrorCode* error_code);
+extern "C" FilesystemInterface* CreateLinFS(ErrorCode* error_code);
 
 }  // namespace fs

@@ -6,7 +6,7 @@
 #include <boost/test/unit_test.hpp>
 
 using fs::ErrorCode;
-using fs::IFileSystem;
+using fs::FilesystemInterface;
 
 BOOST_AUTO_TEST_SUITE(FilesystemOperationsTestSuite)
 
@@ -18,42 +18,42 @@ BOOST_FIXTURE_TEST_CASE(create_fs, DefaultFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_with_cluster_512B, CreatedFSFixture) {
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k512B));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k512B));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
-  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)IFileSystem::ClusterSize::k512B));
+  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)FilesystemInterface::ClusterSize::k512B));
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_with_cluster_1KB, CreatedFSFixture) {
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k1KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k1KB));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
-  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)IFileSystem::ClusterSize::k1KB));
+  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)FilesystemInterface::ClusterSize::k1KB));
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_with_cluster_2KB, CreatedFSFixture) {
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k2KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k2KB));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
-  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)IFileSystem::ClusterSize::k2KB));
+  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)FilesystemInterface::ClusterSize::k2KB));
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_with_cluster_4KB, CreatedFSFixture) {
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k4KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k4KB));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
-  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)IFileSystem::ClusterSize::k4KB));
+  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)FilesystemInterface::ClusterSize::k4KB));
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_if_path_is_regular_file, CreatedFSFixture) {
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k4KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k4KB));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k1KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k1KB));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
-  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)IFileSystem::ClusterSize::k1KB));
+  BOOST_CHECK(boost::filesystem::file_size(device_path()) == (1 << (int)FilesystemInterface::ClusterSize::k1KB));
 }
 
 BOOST_FIXTURE_TEST_CASE(format_fs_if_path_is_directory, CreatedFSFixture) {
   BOOST_REQUIRE(boost::filesystem::create_directory(device_path()));
 
-  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), IFileSystem::ClusterSize::k1KB));
+  BOOST_CHECK_NO_THROW(ec = fs->Format(device_path(), FilesystemInterface::ClusterSize::k1KB));
   BOOST_CHECK(ec == ErrorCode::kErrorDeviceUnknown);
 }
 

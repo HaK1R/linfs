@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "fs/IFile.h"
+#include "fs/file_interface.h"
 #include "lib/entries/file_entry.h"
 #include "lib/reader_writer.h"
 #include "lib/section_allocator.h"
@@ -14,7 +14,7 @@ namespace fs {
 
 namespace linfs {
 
-class FileImpl : public IFile {
+class FileImpl : public FileInterface {
  public:
   FileImpl() = delete;
   FileImpl(std::shared_ptr<FileEntry> file_entry, ReaderWriter* reader_writer, SectionAllocator* allocator)

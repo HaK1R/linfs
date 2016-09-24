@@ -4,7 +4,7 @@
 #include <mutex>
 
 #include "fs/error_code.h"
-#include "fs/IFileSystem.h"
+#include "fs/filesystem_interface.h"
 #include "lib/entries/directory_entry.h"
 #include "lib/entries/entry.h"
 #include "lib/entry_cache.h"
@@ -16,7 +16,7 @@ namespace fs {
 
 namespace linfs {
 
-class LinFS : public IFileSystem {
+class LinFS : public FilesystemInterface {
  public:
   void Release() override;
 
@@ -27,7 +27,7 @@ class LinFS : public IFileSystem {
   ErrorCode Defrag() override { return ErrorCode::kErrorNotSupported; }
 
   // File operations:
-  IFile* OpenFile(const char *path, ErrorCode& error_code) override;
+  FileInterface* OpenFile(const char *path, ErrorCode& error_code) override;
   ErrorCode RemoveFile(const char *path) override;
 
   // Directory operations:

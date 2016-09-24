@@ -1,4 +1,4 @@
-// IFileSystem.h -- Interface for FileSystem class
+// filesystem_interface.h -- Interface for Filesystem class
 
 #pragma once
 
@@ -8,20 +8,15 @@
 #include <string>
 
 #include "fs/error_code.h"
-#include "fs/IFile.h"
+#include "fs/file_interface.h"
+#include "fs/limits.h"
 
 namespace fs {
 
-// File system limits:
-// TODO? move to limits.h
-constexpr size_t kNameMax = 256; // equivalent to NAME_MAX
-constexpr size_t kPathMax = 1024; // equivalent to PATH_MAX
-
-// TODO? rename to FileSystemInterface
-// TODO? rename to ...Filesystem...
-class IFileSystem {
+class FilesystemInterface {
  public:
   enum class ClusterSize : uint8_t {
+    // Cluster size is represented by power of 2
     k512B = 9,
     k1KB = 10,
     k2KB = 11,
@@ -78,7 +73,7 @@ class IFileSystem {
   //
   // Thread safety: Thread safe
   // TODO? use ErrorCode*
-  virtual IFile* OpenFile(const char *path, ErrorCode& error_code) = 0;
+  virtual FileInterface* OpenFile(const char *path, ErrorCode& error_code) = 0;
 
   // 2. Remove a file
   // ErrorCode error_code = fs->RemoveFile("/root/.profile");
@@ -156,7 +151,7 @@ class IFileSystem {
   class DirectoryIterator : public std::iterator<std::input_iterator_tag, const char*> {
    public:
     DirectoryIterator() = default;
-    DirectoryIterator(IFileSystem* fs, const char *path, ErrorCode& error_code)
+    DirectoryIterator(FilesystemInterface* fs, const char *path, ErrorCode& error_code)
         : fs_(fs), path_(path), error_code_(&error_code) {
       GetNext(nullptr);
     }
@@ -181,7 +176,7 @@ class IFileSystem {
         fs_ = nullptr;
     }
 
-    IFileSystem* fs_ = nullptr;
+    FilesystemInterface* fs_ = nullptr;
     std::string path_;
     char name_storage_[kNameMax + 1] = {0};
     ErrorCode* error_code_ = nullptr;
