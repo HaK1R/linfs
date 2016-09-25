@@ -121,16 +121,16 @@ ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const
   }
 }
 
-FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
+FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode* error_code) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   try {
-    Path path = Path::Normalize(path_cstr, error_code);
-    if (error_code != ErrorCode::kSuccess)
+    Path path = Path::Normalize(path_cstr, *error_code);
+    if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
+    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
+    if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
     std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), accessor_.get());
@@ -144,13 +144,13 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
       }
     }
     else if (file->type() == Entry::Type::kDirectory) {
-      error_code = ErrorCode::kErrorIsDirectory;
+      *error_code = ErrorCode::kErrorIsDirectory;
       return nullptr;
     }
     std::shared_ptr<FileEntry> shared_file = static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file)));
     return new FileImpl(shared_file, accessor_.get(), allocator_.get());
   } catch (...) {
-    error_code = ExceptionHandler::ToErrorCode(std::current_exception());
+    *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return nullptr;
   }
 }

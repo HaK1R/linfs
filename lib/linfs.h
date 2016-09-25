@@ -27,7 +27,7 @@ class LinFS : public FilesystemInterface {
   ErrorCode Defrag() override { return ErrorCode::kErrorNotSupported; }
 
   // File operations:
-  FileInterface* OpenFile(const char *path, ErrorCode& error_code) override;
+  FileInterface* OpenFile(const char *path, ErrorCode* error_code) override;
   ErrorCode RemoveFile(const char *path) override;
 
   // Directory operations:

@@ -75,7 +75,7 @@ ErrorCode LoadedFSFixture::RemoveDirectory(const std::string& path) {
 ErrorCode LoadedFSFixture::OpenFile(const std::string& path,
                                     ScopedFile& out_file) {
   ErrorCode error_code;
-  out_file.reset(fs->OpenFile(path.c_str(), error_code));
+  out_file.reset(fs->OpenFile(path.c_str(), &error_code));
   // Check that |out_file| and |error_code| are synchronized.
   BOOST_REQUIRE((out_file.get() != nullptr) ==
                 (error_code == ErrorCode::kSuccess));
@@ -85,9 +85,9 @@ ErrorCode LoadedFSFixture::OpenFile(const std::string& path,
 
 ErrorCode LoadedFSFixture::WriteFile(ScopedFile& file,
                                      const std::string& data) {
-  ErrorCode error_code = ErrorCode::kSuccess;
-  size_t written =
-      file->Write(data.empty() ? nullptr : data.c_str(), data.size());
+  ErrorCode error_code;
+  size_t written = file->Write(data.empty() ? nullptr : data.c_str(),
+                               data.size(), &error_code);
   // Check that |written| and |error_code| are synchronized.
   BOOST_REQUIRE((written == data.size()) ==
                 (error_code == ErrorCode::kSuccess));
@@ -96,8 +96,8 @@ ErrorCode LoadedFSFixture::WriteFile(ScopedFile& file,
 
 ErrorCode LoadedFSFixture::ReadFile(ScopedFile& file, std::string& data) {
   data.resize(data.size() + 1, '\0');
-  ErrorCode error_code = ErrorCode::kSuccess;
-  size_t read = file->Read(&data[0], data.size() - 1);
+  ErrorCode error_code;
+  size_t read = file->Read(&data[0], data.size() - 1, &error_code);
   // Check that |read| and |error_code| are synchronized.
   BOOST_REQUIRE(error_code == ErrorCode::kSuccess || read == 0);
   BOOST_REQUIRE(data[data.size() - 1] == '\0');
