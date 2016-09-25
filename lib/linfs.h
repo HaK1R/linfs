@@ -44,7 +44,7 @@ class LinFS : public FilesystemInterface {
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
 
-  ReaderWriter accessor_;
+  std::unique_ptr<ReaderWriter> accessor_;
   std::unique_ptr<SectionAllocator> allocator_;
   EntryCache cache_;
   std::mutex mutex_;

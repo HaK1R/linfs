@@ -1,8 +1,10 @@
 #include "lib/reader_writer.h"
 
+#include <ios>
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <system_error>
 
 #include "lib/entries/directory_entry.h"
 #include "lib/entries/entry.h"
@@ -16,9 +18,10 @@ namespace fs {
 
 namespace linfs {
 
-ErrorCode ReaderWriter::Open(const char* device_path, std::ios_base::openmode mode) {
-  device_.open(device_path, mode | std::ios_base::binary);
-  return device_.is_open() ? ErrorCode::kSuccess : ErrorCode::kErrorDeviceUnknown;
+ReaderWriter::ReaderWriter(const char* device_path, std::ios_base::openmode mode)
+    : device_(device_path, mode | std::ios_base::binary) {
+  if (!device_.good())
+    throw std::ios_base::failure("open");
 }
 
 size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {
@@ -30,7 +33,7 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {
   if (device_.eof())
     throw FormatException();  // no data to read
   if (!device_.good())
-    throw std::ios_base::failure("");
+    throw std::ios_base::failure("read", std::make_error_code(std::errc::io_error));
   return buf_size;
 }
 
@@ -40,7 +43,7 @@ size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset) {
   device_.seekp(offset);
   device_.write(buf, buf_size);
   if (!device_.good())
-    throw std::ios_base::failure("");
+    throw std::ios_base::failure("write", std::make_error_code(std::errc::io_error));
   return buf_size;
 }
 

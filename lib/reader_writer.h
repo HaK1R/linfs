@@ -20,7 +20,7 @@ namespace linfs {
 // TODO? move to util/
 class ReaderWriter {
  public:
-  ErrorCode Open(const char* device_path, std::ios_base::openmode mode);
+  ReaderWriter(const char* device_path, std::ios_base::openmode mode);
 
   template<typename T>
   T Read(uint64_t offset) {

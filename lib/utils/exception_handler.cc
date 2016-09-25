@@ -3,6 +3,7 @@
 #include <cassert>
 #include <ios>
 #include <new>
+#include <system_error>
 
 #include "lib/utils/format_exception.h"
 
@@ -15,8 +16,10 @@ ErrorCode ExceptionHandler::ToErrorCode(std::exception_ptr exception_pointer) no
     std::rethrow_exception(exception_pointer);
   } catch (const std::bad_alloc&) {
     return ErrorCode::kErrorNoMemory;
-  } catch (const std::ios_base::failure&) {
-    return ErrorCode::kErrorInputOutput;
+  } catch (const std::ios_base::failure& e) {
+    if (e.code() == std::make_error_code(std::errc::io_error))
+      return ErrorCode::kErrorInputOutput;
+    return ErrorCode::kErrorDeviceUnknown;
   } catch (const FormatException&) {
     return ErrorCode::kErrorFormat;
   } catch (...) {

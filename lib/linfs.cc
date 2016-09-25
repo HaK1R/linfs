@@ -34,28 +34,28 @@ void LinFS::Release() {
 
 template<typename T, typename... Args>
 std::unique_ptr<T> LinFS::AllocateEntry(Args&&... args) {
-  Section place = allocator_->AllocateSection(1, &accessor_);
+  Section place = allocator_->AllocateSection(1, accessor_.get());
 
   std::unique_ptr<T> entry;
   try {
     entry = T::Create(place.data_offset(), place.data_size(),
-                      &accessor_, std::forward<Args>(args)...);
+                      accessor_.get(), std::forward<Args>(args)...);
   } catch (...) {
-    allocator_->ReleaseSection(place, &accessor_);
+    allocator_->ReleaseSection(place, accessor_.get());
     throw;
   }
   return entry;
 }
 
 void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
-  allocator_->ReleaseSection(entry->section_offset(), &accessor_);
+  allocator_->ReleaseSection(entry->section_offset(), accessor_.get());
   entry.reset();
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
   std::shared_ptr<DirectoryEntry> dir = root_entry_;
   while (!path.Empty()) {
-    std::shared_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), &accessor_);
+    std::shared_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), accessor_.get());
     if (entry == nullptr) {
       error_code = ErrorCode::kErrorNotFound;
       return nullptr;
@@ -73,26 +73,27 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
 }
 
 ErrorCode LinFS::Load(const char *device_path) {
-  if (root_entry_)
-    // |root_entry_| is a perfect indicator that
-    // filesystem has already been loaded.
+  if (accessor_)
+    // Find a way to say that filesystem has already been loaded.
     return ErrorCode::kErrorDeviceUnknown;
 
-  ErrorCode error_code = accessor_.Open(device_path, std::ios_base::in | std::ios_base::out);
-  if (error_code != ErrorCode::kSuccess)
-    return error_code;
-
   try {
-    DeviceLayout::Header header = DeviceLayout::ParseHeader(&accessor_, error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
+    accessor_.reset(new ReaderWriter(device_path, std::ios_base::in | std::ios_base::out));
 
-    std::unique_ptr<NoneEntry> none_entry = static_pointer_cast<NoneEntry>(accessor_.LoadEntry(header.none_entry_offset));
+    ErrorCode error_code;
+    DeviceLayout::Header header = DeviceLayout::ParseHeader(accessor_.get(), error_code);
+    if (error_code != ErrorCode::kSuccess) {
+      accessor_.reset();
+      return error_code;
+    }
+
+    std::unique_ptr<NoneEntry> none_entry = static_pointer_cast<NoneEntry>(accessor_->LoadEntry(header.none_entry_offset));
     allocator_ = std::make_unique<SectionAllocator>((1 << header.cluster_size_log2),
                                                    uint64_t(header.total_clusters), std::move(none_entry));
-    root_entry_ = static_pointer_cast<DirectoryEntry>(accessor_.LoadEntry(header.root_entry_offset));
+    root_entry_ = static_pointer_cast<DirectoryEntry>(accessor_->LoadEntry(header.root_entry_offset));
     return ErrorCode::kSuccess;
   } catch (...) {
+    accessor_.reset();
     allocator_.reset();
     root_entry_.reset();
     return ExceptionHandler::ToErrorCode(std::current_exception());
@@ -100,23 +101,19 @@ ErrorCode LinFS::Load(const char *device_path) {
 }
 
 ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const {
-  ReaderWriter writer;
-
-  ErrorCode error_code = writer.Open(device_path, std::ios_base::out | std::ios_base::trunc);
-  if (error_code != ErrorCode::kSuccess)
-    return error_code;
-
   try {
+    std::unique_ptr<ReaderWriter> writer(new ReaderWriter(device_path, std::ios_base::out | std::ios_base::trunc));
+
     DeviceLayout::Header header(cluster_size);
-    DeviceLayout::WriteHeader(header, &writer);
+    DeviceLayout::WriteHeader(header, writer.get());
 
     DeviceLayout::Body body(header);
-    NoneEntry::Create(header.none_entry_offset, sizeof body.none_entry, &writer);
+    NoneEntry::Create(header.none_entry_offset, sizeof body.none_entry, writer.get());
     Section root_section(header.root_entry_offset - sizeof body.root.section,
                          body.root.section.size, body.root.section.next_offset);
-    writer.SaveSection(root_section);
+    writer->SaveSection(root_section);
     DirectoryEntry::Create(header.root_entry_offset, root_section.data_size(),
-                           &writer, "/");
+                           writer.get(), "/");
     return ErrorCode::kSuccess;
   }
   catch (...) {
@@ -136,11 +133,11 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
     if (error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), &accessor_);
+    std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (!file) {
       file = AllocateEntry<FileEntry>(path.BaseName());
       try {
-        cwd->AddEntry(file.get(), &accessor_, allocator_.get());
+        cwd->AddEntry(file.get(), accessor_.get(), allocator_.get());
       } catch (...) {
         ReleaseEntry(file);
         throw;
@@ -151,7 +148,7 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode& error_code) {
       return nullptr;
     }
     std::shared_ptr<FileEntry> shared_file = static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file)));
-    return new FileImpl(shared_file, &accessor_, allocator_.get());
+    return new FileImpl(shared_file, accessor_.get(), allocator_.get());
   } catch (...) {
     error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return nullptr;
@@ -171,14 +168,14 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_);
+    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
       return ErrorCode::kErrorNotFound;
     if (entry->type() != Entry::Type::kFile)
       return ErrorCode::kErrorIsDirectory;
     if (cache_.EntryIsShared(entry.get()))
       return ErrorCode::kErrorFileBusy;
-    bool success = cwd->RemoveEntry(entry.get(), &accessor_, allocator_.get());
+    bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
     if (!success)
       return ErrorCode::kErrorFormat;
     ReleaseEntry(entry);
@@ -201,12 +198,12 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    if (cwd->FindEntryByName(path.BaseName(), &accessor_))
+    if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
 
     std::unique_ptr<Entry> directory = AllocateEntry<DirectoryEntry>(path.BaseName());
     try {
-      cwd->AddEntry(directory.get(), &accessor_, allocator_.get());
+      cwd->AddEntry(directory.get(), accessor_.get(), allocator_.get());
     } catch (...) {
       ReleaseEntry(directory);
       throw;
@@ -230,17 +227,17 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), &accessor_);
+    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
       return ErrorCode::kErrorNotFound;
     if (entry->type() != Entry::Type::kDirectory)
       return ErrorCode::kErrorNotDirectory;
 
-    bool has_entries = static_cast<DirectoryEntry*>(entry.get())->HasEntries(&accessor_);
+    bool has_entries = static_cast<DirectoryEntry*>(entry.get())->HasEntries(accessor_.get());
     if (has_entries)
       return ErrorCode::kErrorDirectoryNotEmpty;
 
-    bool success = cwd->RemoveEntry(entry.get(), &accessor_, allocator_.get());
+    bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
     if (!success)
       return ErrorCode::kErrorFormat;
     ReleaseEntry(entry);
@@ -263,7 +260,7 @@ const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    return cwd->GetNextEntryName(prev, &accessor_, next_buf);
+    return cwd->GetNextEntryName(prev, accessor_.get(), next_buf);
   } catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return nullptr;
