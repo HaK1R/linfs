@@ -1,43 +1,77 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "fs/error_code.h"
+#include "fs/file_interface.h"
+#include "fs/filesystem_interface.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "fs/error_code.h"
+// Specify the default engine.
 #include "fs/linfs_factory.h"
+#define CREATE_FS CreateLinFS
 
+///////////////////////////////////////////////////////////
+// DefaultFSFixture
+///////////////////////////////////////////////////////////
 struct DefaultFSFixture {
-  fs::ErrorCode ec;
-  fs::FileInterface* file;
-  fs::FilesystemInterface* fs;
+  struct FilesystemDeleter {
+    void operator()(fs::FilesystemInterface* ptr) { ptr->Release(); }
+  };
+  using ScopedFilesystem =
+      std::unique_ptr<fs::FilesystemInterface, FilesystemDeleter>;
+
+  fs::ErrorCode Create(ScopedFilesystem& out_fs);
+
+  fs::ErrorCode ec = fs::ErrorCode::kSuccess;
+  ScopedFilesystem fs;
 };
 
+///////////////////////////////////////////////////////////
+// CreatedFSFixture
+///////////////////////////////////////////////////////////
 struct CreatedFSFixture : DefaultFSFixture {
-  CreatedFSFixture() {
-    BOOST_REQUIRE_NO_THROW(fs = fs::CreateLinFS(&ec));
-    BOOST_REQUIRE(fs != nullptr && ec == fs::ErrorCode::kSuccess);
-    unique_name = boost::filesystem::unique_path();
-    BOOST_REQUIRE(!boost::filesystem::exists(unique_name));
-  }
-  ~CreatedFSFixture() {
-    BOOST_REQUIRE_NO_THROW(fs->Release());
-    boost::filesystem::remove(unique_name);
-  }
-  const char* device_path() const { return unique_name.c_str(); }
- private:
-  boost::filesystem::path unique_name;
+  CreatedFSFixture();
+  ~CreatedFSFixture();
+  fs::ErrorCode Format(const boost::filesystem::path& path,
+                       fs::FilesystemInterface::ClusterSize cluster_size);
+
+  boost::filesystem::path device_path;
 };
 
+///////////////////////////////////////////////////////////
+// FormattedFSFixture
+///////////////////////////////////////////////////////////
 struct FormattedFSFixture : CreatedFSFixture {
-  FormattedFSFixture(fs::FilesystemInterface::ClusterSize cluster_size = fs::FilesystemInterface::ClusterSize::k1KB) {
-    BOOST_REQUIRE_NO_THROW(ec = fs->Format(device_path(), cluster_size));
-    BOOST_REQUIRE(ec == fs::ErrorCode::kSuccess);
-  }
+  FormattedFSFixture(fs::FilesystemInterface::ClusterSize cluster_size =
+                         fs::FilesystemInterface::ClusterSize::k1KB);
+  fs::ErrorCode Load(const boost::filesystem::path& path);
 };
 
+///////////////////////////////////////////////////////////
+// LoadedFSFixture
+///////////////////////////////////////////////////////////
 struct LoadedFSFixture : FormattedFSFixture {
-  LoadedFSFixture() {
-    BOOST_REQUIRE_NO_THROW(ec = fs->Load(device_path()));
-    BOOST_REQUIRE(ec == fs::ErrorCode::kSuccess);
-  }
+  struct FileDeleter {
+    void operator()(fs::FileInterface* ptr) { ptr->Close(); }
+  };
+  using ScopedFile = std::unique_ptr<fs::FileInterface, FileDeleter>;
+
+  LoadedFSFixture();
+  fs::ErrorCode CreateDirectory(const std::string& path);
+  fs::ErrorCode RemoveDirectory(const std::string& path);
+  fs::ErrorCode OpenFile(const std::string& path, ScopedFile& out_file);
+  fs::ErrorCode WriteFile(ScopedFile& file, const std::string& data);
+  fs::ErrorCode ReadFile(ScopedFile& file, std::string& data);
+  fs::ErrorCode CreateFile(const std::string& path,
+                           const std::string& data = "");
+  fs::ErrorCode RemoveFile(const std::string& path);
+  fs::ErrorCode ListDirectory(const std::string& path,
+                              std::vector<std::string>& out_content);
+
+  ScopedFile file;
 };
