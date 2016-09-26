@@ -1,7 +1,5 @@
 #include "lib/entries/file_entry.h"
 
-#include <mutex>
-
 #include "lib/layout/entry_layout.h"
 #include "lib/utils/format_exception.h"
 
@@ -32,8 +30,6 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
 }
 
 size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer) {
-  std::lock_guard<std::mutex> lock(mutex_);
-
   size_t read = 0;
   SectionFile sec_file = CursorToSection(cursor, reader_writer);
   while (1) {
@@ -57,8 +53,6 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
 }
 
 size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator) {
-  std::lock_guard<std::mutex> lock(mutex_);
-
   size_t written = 0;
   uint64_t old_cursor = cursor;
   SectionFile sec_file = CursorToSection(cursor, reader_writer);

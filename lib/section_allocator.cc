@@ -11,7 +11,10 @@ namespace fs {
 namespace linfs {
 
 Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_writer) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  // SectionAllocator owns and entirely depends on the NoneEntry and just
+  // expands its functionality. Therefore we can use only one mutex for both of
+  // them.
+  std::unique_lock<std::mutex> lock = none_entry_->Lock();
 
   if (none_entry_->HasSections())
     return none_entry_->GetSection(size, reader_writer);
@@ -26,10 +29,9 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
 }
 
 void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* reader_writer) noexcept {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock<std::mutex> lock = none_entry_->Lock();
 
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
-
   try {
     if (last_cluster_offset == section.base_offset())
       SetTotalClusters(total_clusters_ - section.size() / cluster_size_, reader_writer);

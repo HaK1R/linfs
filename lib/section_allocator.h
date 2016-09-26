@@ -39,7 +39,6 @@ class SectionAllocator {
   const uint64_t cluster_size_;
   uint64_t total_clusters_;
   std::unique_ptr<NoneEntry> none_entry_;
-  std::mutex mutex_;
 };
 
 }  // namespace linfs

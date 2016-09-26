@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 
 #include "lib/layout/section_layout.h"
 
@@ -24,12 +25,14 @@ class Entry {
   uint64_t base_offset() const { return base_offset_; }
   uint64_t section_offset() const { return base_offset() - sizeof(SectionLayout::Header); }
 
+  std::unique_lock<std::mutex> Lock() { return std::unique_lock<std::mutex>(mutex_); }
+
  protected:
   Entry(Type type, uint64_t base_offset)
       : type_(type), base_offset_(base_offset) {}
 
   // Thread safety is guaranteed by this guy.
-  //std::mutex mutex_;
+  std::mutex mutex_;
 
  private:
   const Type type_;

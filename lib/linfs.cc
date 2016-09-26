@@ -55,7 +55,10 @@ void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
   std::shared_ptr<DirectoryEntry> dir = root_entry_;
   while (!path.Empty()) {
-    std::shared_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), accessor_.get());
+    // Lock the directory until the shared entry is constructed.
+    std::unique_lock<std::mutex> lock = dir->Lock();
+
+    std::unique_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), accessor_.get());
     if (entry == nullptr) {
       error_code = ErrorCode::kErrorNotFound;
       return nullptr;
@@ -65,7 +68,10 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
       return nullptr;
     }
 
-    dir = static_pointer_cast<DirectoryEntry>(entry);
+    std::shared_ptr<Entry> shared_entry = cache_.GetSharedEntry(std::move(entry));
+    // Safe to unlock here. But we will wait a little bit more.
+
+    dir = static_pointer_cast<DirectoryEntry>(shared_entry);
     path = path.ExceptFirstName();
   }
 
@@ -75,7 +81,7 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
 ErrorCode LinFS::Load(const char *device_path) {
   if (accessor_)
     // Find a way to say that filesystem has already been loaded.
-    return ErrorCode::kErrorDeviceUnknown;
+    return ErrorCode::kErrorBusy;
 
   try {
     accessor_.reset(new ReaderWriter(device_path, std::ios_base::in | std::ios_base::out));
@@ -122,8 +128,6 @@ ErrorCode LinFS::Format(const char *device_path, ClusterSize cluster_size) const
 }
 
 FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode* error_code) {
-  std::lock_guard<std::mutex> lock(mutex_);
-
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
@@ -132,6 +136,8 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode* error_code) {
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
+
+    std::unique_lock<std::mutex> lock = cwd->Lock();
 
     std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (!file) {
@@ -157,7 +163,6 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode* error_code) {
 
 ErrorCode LinFS::RemoveFile(const char *path_cstr) {
   ErrorCode error_code;
-  std::lock_guard<std::mutex> lock(mutex_);
 
   try {
     Path path = Path::Normalize(path_cstr, error_code);
@@ -168,13 +173,15 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
+    std::unique_lock<std::mutex> lock = cwd->Lock();
+
     std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
       return ErrorCode::kErrorNotFound;
     if (entry->type() != Entry::Type::kFile)
       return ErrorCode::kErrorIsDirectory;
     if (cache_.EntryIsShared(entry.get()))
-      return ErrorCode::kErrorFileBusy;
+      return ErrorCode::kErrorBusy;
     bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
     if (!success)
       return ErrorCode::kErrorFormat;
@@ -187,7 +194,6 @@ ErrorCode LinFS::RemoveFile(const char *path_cstr) {
 
 ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
   ErrorCode error_code;
-  std::lock_guard<std::mutex> lock(mutex_);
 
   try {
     Path path = Path::Normalize(path_cstr, error_code);
@@ -197,6 +203,8 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
+
+    std::unique_lock<std::mutex> lock = cwd->Lock();
 
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
@@ -216,7 +224,6 @@ ErrorCode LinFS::CreateDirectory(const char *path_cstr) {
 
 ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
   ErrorCode error_code;
-  std::lock_guard<std::mutex> lock(mutex_);
 
   try {
     Path path = Path::Normalize(path_cstr, error_code);
@@ -227,12 +234,18 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
+    std::unique_lock<std::mutex> lock = cwd->Lock();
+
     std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
       return ErrorCode::kErrorNotFound;
     if (entry->type() != Entry::Type::kDirectory)
       return ErrorCode::kErrorNotDirectory;
+    if (cache_.EntryIsShared(entry.get()))
+      return ErrorCode::kErrorBusy;
 
+    // Safe to check without locking the entry's lock |entry->Lock()|
+    // because no one refers to (and uses) it at the moment.
     bool has_entries = static_cast<DirectoryEntry*>(entry.get())->HasEntries(accessor_.get());
     if (has_entries)
       return ErrorCode::kErrorDirectoryNotEmpty;
@@ -249,8 +262,6 @@ ErrorCode LinFS::RemoveDirectory(const char *path_cstr) {
 
 const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
                                  char *next_buf, ErrorCode* error_code) {
-  std::lock_guard<std::mutex> lock(mutex_);
-
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
@@ -260,6 +271,7 @@ const char* LinFS::ListDirectory(const char *path_cstr, const char *prev,
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
+    std::unique_lock<std::mutex> lock = cwd->Lock();
     return cwd->GetNextEntryName(prev, accessor_.get(), next_buf);
   } catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());

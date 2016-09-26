@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
@@ -37,8 +36,6 @@ class FileEntry : public Entry {
   void SetSize(uint64_t size, ReaderWriter* reader_writer);
 
   std::atomic<uint64_t> size_;
-
-  std::mutex mutex_;
 };
 
 }  // namespace linfs

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
@@ -20,6 +21,7 @@ class EntryCache {
   void RemoveExpiredEntries() noexcept;
 
   std::map<uint64_t, std::weak_ptr<Entry>> shared_;
+  std::mutex mutex_;
 };
 
 }  // namespace linfs

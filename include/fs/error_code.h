@@ -13,6 +13,7 @@ enum class ErrorCode : uint8_t {
   kErrorNoMemory,           // error: no memory
   kErrorExists,             // error: file or directory already exists
   kErrorNotFound,           // error: file or directory not found
+  kErrorBusy,               // error: resource is busy
   kErrorNotSupported,       // error: operation not supported
   kErrorNameTooLong,        // error: file name exceeds kNameMax, or
                             //        path exceeds kPathMax
@@ -32,7 +33,6 @@ enum class ErrorCode : uint8_t {
   // TODO? remove these
   kErrorNoData,             // error: no data
   kErrorBrokenFile,         // error: file entry is broken
-  kErrorFileBusy,           // error: file is busy
 };
 
 }  // namespace fs

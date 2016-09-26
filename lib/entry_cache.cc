@@ -9,6 +9,8 @@ namespace linfs {
 std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry) {
   std::shared_ptr<Entry> shared_entry = std::move(entry);
 
+  std::lock_guard<std::mutex> lock(mutex_);
+
   auto it = shared_.emplace(shared_entry->base_offset(), std::weak_ptr<Entry>(shared_entry));
   if (!it.second) {
     std::shared_ptr<Entry> cached_entry = it.first->second.lock();
@@ -24,6 +26,8 @@ std::shared_ptr<Entry> EntryCache::GetSharedEntry(std::unique_ptr<Entry> entry) 
 }
 
 bool EntryCache::EntryIsShared(Entry* entry) noexcept {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   auto it = shared_.find(entry->base_offset());
   return it != shared_.end() && !it->second.expired();
 }
