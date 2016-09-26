@@ -10,7 +10,6 @@ namespace linfs {
 
 class ExceptionHandler {
  public:
-  // TODO? rename ExceptionToErrorCode
   static ErrorCode ToErrorCode(std::exception_ptr exception_pointer) noexcept;
 };
 

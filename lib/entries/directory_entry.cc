@@ -70,38 +70,38 @@ bool DirectoryEntry::RemoveEntry(const Entry* entry,
   return success;
 }
 
-bool DirectoryEntry::HasEntries(ReaderWriter* reader_writer) {
-  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
+bool DirectoryEntry::HasEntries(ReaderWriter* reader) {
+  SectionDirectory sec_dir = reader->LoadSection<SectionDirectory>(section_offset());
 
-  bool has_entries = sec_dir.HasEntries(reader_writer, sizeof(EntryLayout::DirectoryHeader));
+  bool has_entries = sec_dir.HasEntries(reader, sizeof(EntryLayout::DirectoryHeader));
   while (!has_entries && sec_dir.next_offset()) {
-    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
-    has_entries = sec_dir.HasEntries(reader_writer);
+    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    has_entries = sec_dir.HasEntries(reader);
   }
 
   return has_entries;
 }
 
 std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
-                                                       ReaderWriter* reader_writer) {
-  return FindEntryByName(entry_name, reader_writer, nullptr, nullptr);
+                                                       ReaderWriter* reader) {
+  return FindEntryByName(entry_name, reader, nullptr, nullptr);
 }
 
 std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
-                                                       ReaderWriter* reader_writer,
+                                                       ReaderWriter* reader,
                                                        SectionDirectory* section_directory,
                                                        SectionDirectory::Iterator* iterator) {
   uint64_t start_position = sizeof(EntryLayout::DirectoryHeader);
-  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
+  SectionDirectory sec_dir = reader->LoadSection<SectionDirectory>(section_offset());
 
   while (1) {
-    for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader_writer, start_position);
+    for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader, start_position);
          it != sec_dir.EntriesEnd(); ++it) {
       uint64_t it_offset = *it;
       if (it_offset == 0)
         continue;
       char it_name[kNameMax + 1];
-      std::unique_ptr<Entry> it_entry = reader_writer->LoadEntry(it_offset, it_name);
+      std::unique_ptr<Entry> it_entry = reader->LoadEntry(it_offset, it_name);
       if (entry_name == nullptr || strcmp(entry_name, it_name) == 0) {
         if (entry_name != nullptr && section_directory != nullptr) {
           *section_directory = sec_dir;
@@ -114,22 +114,22 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
     if (!sec_dir.next_offset())
       return nullptr;
 
-    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
     start_position = 0;
   }
 }
 
-const char* DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader_writer, char* next_buf) {
+const char* DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader, char* next_buf) {
   // TODO? better
   SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
   SectionDirectory::Iterator it(0);
-  std::unique_ptr<Entry> entry = FindEntryByName(prev, reader_writer, &sec_dir, &it);
+  std::unique_ptr<Entry> entry = FindEntryByName(prev, reader, &sec_dir, &it);
   if (entry == nullptr)
     // There are no entries in the directory.
     return nullptr;
   if (prev == nullptr) {
     // Get first entry
-    reader_writer->LoadEntry(entry->base_offset(), next_buf);
+    reader->LoadEntry(entry->base_offset(), next_buf);
     return next_buf;
   }
 
@@ -141,21 +141,21 @@ const char* DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* rea
       uint64_t it_offset = *it++;
       if (it_offset == 0)
         continue;
-      reader_writer->LoadEntry(it_offset, next_buf);
+      reader->LoadEntry(it_offset, next_buf);
       return next_buf;
     }
 
     if (!sec_dir.next_offset())
       return nullptr;
 
-    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
-    it = sec_dir.EntriesBegin(reader_writer);
+    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    it = sec_dir.EntriesBegin(reader);
   }
 }
 
-void DirectoryEntry::ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* reader_writer) {
+void DirectoryEntry::ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* writer) {
   while (entries_offset != entries_end) {
-    reader_writer->Write<uint64_t>(0, entries_offset);
+    writer->Write<uint64_t>(0, entries_offset);
     entries_offset += sizeof(uint64_t);
   }
 }

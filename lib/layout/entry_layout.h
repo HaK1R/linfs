@@ -13,7 +13,7 @@ namespace fs {
 namespace linfs {
 
 class EntryLayout {
-  // TODO?class CHECK_LAYOUT_TYPE
+  // Common header
   struct __attribute__((packed)) _Header {
     _Header(Entry::Type _type) : type(static_cast<uint8_t>(_type)) {}
     // ---
@@ -63,7 +63,7 @@ class EntryLayout {
                 "EntryLayout::FileHeader isn't a standard-layout type");
 
   union __attribute__((packed)) HeaderUnion {
-    // Make compiler happy with default constructor
+    // Make compiler happy with the default constructor
     HeaderUnion() {}
     // ---
     _Header common;

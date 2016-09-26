@@ -28,11 +28,6 @@ enum class ErrorCode : uint8_t {
   kErrorIsDirectory,        // error: it is a directory
   kErrorNotDirectory,       // error: not a directory
   kErrorDirectoryNotEmpty,  // error: directory not empty
-
-  // File errors:
-  // TODO? remove these
-  kErrorNoData,             // error: no data
-  kErrorBrokenFile,         // error: file entry is broken
 };
 
 }  // namespace fs

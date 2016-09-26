@@ -17,8 +17,8 @@ class SectionDirectory : public Section {
   SectionDirectory() = delete;
   using Section::Section;
 
-  Iterator EntriesBegin(ReaderWriter* reader_writer, uint64_t start_position = 0) {
-    return Iterator(data_offset() + start_position, reader_writer);
+  Iterator EntriesBegin(ReaderWriter* reader, uint64_t start_position = 0) {
+    return Iterator(data_offset() + start_position, reader);
   }
   Iterator EntriesEnd() {
     return Iterator(data_offset() + data_size());
@@ -26,7 +26,7 @@ class SectionDirectory : public Section {
 
   bool AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position = 0);
   bool RemoveEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position = 0);
-  bool HasEntries(ReaderWriter* reader_writer, uint64_t start_position = 0);
+  bool HasEntries(ReaderWriter* reader, uint64_t start_position = 0);
 };
 
 }  // namespace linfs

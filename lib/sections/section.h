@@ -30,11 +30,11 @@ class Section {
   friend class DirectoryEntry;
   friend class FileEntry;
   friend class NoneEntry;
-  void SetSize(uint64_t size, ReaderWriter* reader_writer);
-  void SetNext(uint64_t next_offset, ReaderWriter* reader_writer);
+  void SetSize(uint64_t size, ReaderWriter* writer);
+  void SetNext(uint64_t next_offset, ReaderWriter* writer);
 
  private:
-  /*TODO? const*/uint64_t base_offset_;
+  uint64_t base_offset_;
   uint64_t size_;
   uint64_t next_offset_;
 };

@@ -11,16 +11,16 @@ std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
                                              uint64_t /* entry_size */,
                                              ReaderWriter* writer,
                                              const char *name) {
-  writer->Write<EntryLayout::FileHeader>(EntryLayout::FileHeader{0, name}, entry_offset);
+  writer->Write<EntryLayout::FileHeader>(EntryLayout::FileHeader(0, name), entry_offset);
   return std::make_unique<FileEntry>(entry_offset, 0);
 }
 
-SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer) {
-  SectionFile sec_file = reader_writer->LoadSection<SectionFile>(section_offset());
+SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader) {
+  SectionFile sec_file = reader->LoadSection<SectionFile>(section_offset());
   cursor += sizeof(EntryLayout::FileHeader);
   while (cursor >= sec_file.data_size() && sec_file.next_offset()) {
     cursor -= sec_file.data_size();
-    sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset());
+    sec_file = reader->LoadSection<SectionFile>(sec_file.next_offset());
   }
 
   if (cursor >= sec_file.data_size())
@@ -29,12 +29,11 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader_wr
   return sec_file;
 }
 
-size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer) {
+size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader) {
   size_t read = 0;
-  SectionFile sec_file = CursorToSection(cursor, reader_writer);
+  SectionFile sec_file = CursorToSection(cursor, reader);
   while (1) {
-    size_t rc = sec_file.Read(cursor, buf, buf_size, reader_writer);
-    // TODO? return already read data.
+    size_t rc = sec_file.Read(cursor, buf, buf_size, reader);
     read += rc;
     buf += rc;
     buf_size -= rc;
@@ -44,8 +43,7 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
     if (!sec_file.next_offset())
       throw FormatException();  // file size is smaller than expected
 
-    sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset());
-    // TODO? return already read data.
+    sec_file = reader->LoadSection<SectionFile>(sec_file.next_offset());
     cursor = 0;
   }
 
@@ -58,7 +56,6 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
   SectionFile sec_file = CursorToSection(cursor, reader_writer);
   while (1) {
     size_t rc = sec_file.Write(cursor, buf, buf_size, reader_writer);
-    // TODO? return already written data.
     written += rc;
     buf += rc;
     buf_size -= rc;
@@ -67,7 +64,6 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
 
     if (!sec_file.next_offset()) {
       SectionFile next_sec_file = allocator->AllocateSection<SectionFile>(buf_size, reader_writer);
-      // TODO? return already written data.
       try {
         sec_file.SetNext(next_sec_file.base_offset(), reader_writer);
       }
@@ -79,7 +75,6 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
     }
     else
       sec_file = reader_writer->LoadSection<SectionFile>(sec_file.next_offset());
-      // TODO? return already written data.
     cursor = 0;
   }
 
@@ -89,8 +84,8 @@ size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, Reade
   return written;
 }
 
-void FileEntry::SetSize(uint64_t size, ReaderWriter* reader_writer) {
-  reader_writer->Write<uint64_t>(size, base_offset() + offsetof(EntryLayout::FileHeader, size));
+void FileEntry::SetSize(uint64_t size, ReaderWriter* writer) {
+  writer->Write<uint64_t>(size, base_offset() + offsetof(EntryLayout::FileHeader, size));
   size_ = size;
 }
 

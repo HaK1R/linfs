@@ -72,7 +72,6 @@ class FilesystemInterface {
   // file->Close();
   //
   // Thread safety: Thread safe
-  // TODO? use ErrorCode*
   virtual FileInterface* OpenFile(const char *path, ErrorCode* error_code) = 0;
 
   // 2. Remove a file

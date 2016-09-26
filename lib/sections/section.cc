@@ -7,13 +7,13 @@ namespace fs {
 
 namespace linfs {
 
-void Section::SetSize(uint64_t size, ReaderWriter* reader_writer) {
-  reader_writer->Write<uint64_t>(size, base_offset() + offsetof(SectionLayout::Header, size));
+void Section::SetSize(uint64_t size, ReaderWriter* writer) {
+  writer->Write<uint64_t>(size, base_offset() + offsetof(SectionLayout::Header, size));
   size_ = size;
 }
 
-void Section::SetNext(uint64_t next_offset, ReaderWriter* reader_writer) {
-  reader_writer->Write<uint64_t>(next_offset, base_offset() + offsetof(SectionLayout::Header, next_offset));
+void Section::SetNext(uint64_t next_offset, ReaderWriter* writer) {
+  writer->Write<uint64_t>(next_offset, base_offset() + offsetof(SectionLayout::Header, next_offset));
   next_offset_ = next_offset;
 }
 

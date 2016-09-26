@@ -5,7 +5,6 @@
 #include <memory>
 #include <mutex>
 
-#include "fs/error_code.h"
 #include "lib/entries/entry.h"
 
 namespace fs {

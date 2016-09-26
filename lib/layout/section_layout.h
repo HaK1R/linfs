@@ -25,14 +25,6 @@ class SectionLayout {
   // };
 };
 
-// TODO use?
-//ReaderWriter::Stream& operator<<(ReaderWriter::Stream& stream,
-//        SectionLayout::Header header) {
-//  header.size = header.size;
-//  header.next_offset = header.next_offset;
-//  stream << header.size << header.next_offset;
-//}
-
 }  // namespace linfs
 
 }  // namespace fs

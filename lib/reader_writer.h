@@ -40,7 +40,6 @@ class ReaderWriter {
   size_t Write(const char* buf, size_t buf_size, uint64_t offset);
 
   template<typename T>
-  // TODO? Distance=uint64_t
   class ReadIterator : public std::iterator<std::input_iterator_tag,
                                             T, uint64_t, const T*, const T&> {
     using _Base = std::iterator<std::input_iterator_tag, T, uint64_t, const T*, const T&>;
@@ -57,8 +56,8 @@ class ReaderWriter {
 
     bool operator==(const ReadIterator& that) { return position_ == that.position_; }
     bool operator!=(const ReadIterator& that) { return !(*this == that); }
-    reference operator*() /*const*/ { ReadValue(); return value_; }
-    pointer operator->() /*TODO? const*/ { ReadValue(); return &value_; }
+    reference operator*() { ReadValue(); return value_; }
+    pointer operator->() { ReadValue(); return &value_; }
     ReadIterator& operator++() { position_ += sizeof(value_type); return *this; }
     ReadIterator operator++(int) { ReadIterator tmp = *this; ++*this; return tmp; }
 
@@ -72,13 +71,6 @@ class ReaderWriter {
     uint64_t position_;
     ReaderWriter* reader_ = nullptr;
   };
-
-  //template<typename T>
-  //std::tuple<typename ReadIterator<T>, ReadIterator<T>> ReadRange(uint64_t pos, uint64_t len, ErrorCode& error_code) {
-  //  assert(len % sizeof(T) == 0);
-  //  return std::make_tuple(ReadIterator<T>(pos, this, error_code),
-  //                         ReadIterator(pos + len));
-  //}
 
   template<typename T = Section, typename... Args>
   T LoadSection(uint64_t section_offset, Args&&... args) {

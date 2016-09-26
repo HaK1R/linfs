@@ -5,7 +5,6 @@ namespace fs {
 namespace linfs {
 
 bool SectionDirectory::AddEntry(uint64_t entry_offset, ReaderWriter* reader_writer, uint64_t start_position) {
-  //std::tie(it, end) = reader_writer->ReadRange(data_offset() + start_position, data_size() - start_position, error_code);
   for (Iterator it = EntriesBegin(reader_writer, start_position); it != EntriesEnd(); ++it)
     if (*it == 0) {
       reader_writer->Write<uint64_t>(entry_offset, it.position());
@@ -25,8 +24,8 @@ bool SectionDirectory::RemoveEntry(uint64_t entry_offset, ReaderWriter* reader_w
   return false;
 }
 
-bool SectionDirectory::HasEntries(ReaderWriter* reader_writer, uint64_t start_position) {
-  for (Iterator it = EntriesBegin(reader_writer, start_position); it != EntriesEnd(); ++it)
+bool SectionDirectory::HasEntries(ReaderWriter* reader, uint64_t start_position) {
+  for (Iterator it = EntriesBegin(reader, start_position); it != EntriesEnd(); ++it)
     if (*it != 0)
       return true;
 

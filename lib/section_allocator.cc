@@ -39,6 +39,7 @@ void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* read
       none_entry_->PutSection(section, reader_writer);
   }
   catch (...) {
+    // TODO? don't use std::cerr in shared libraries
     std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size() << std::endl;
   }
 }

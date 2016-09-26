@@ -28,12 +28,12 @@ class FileEntry : public Entry {
 
   uint64_t size() const { return size_; }
 
-  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader_writer);
+  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader);
   size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator);
 
  private:
-  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader_writer);
-  void SetSize(uint64_t size, ReaderWriter* reader_writer);
+  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader);
+  void SetSize(uint64_t size, ReaderWriter* writer);
 
   std::atomic<uint64_t> size_;
 };

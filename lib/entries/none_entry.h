@@ -31,7 +31,7 @@ class NoneEntry : public Entry {
   bool HasSections() const { return head_offset() != 0; }
 
  private:
-  void SetHead(uint64_t head_offset, ReaderWriter* reader_writer);
+  void SetHead(uint64_t head_offset, ReaderWriter* writer);
 
   uint64_t head_offset_;
 };
