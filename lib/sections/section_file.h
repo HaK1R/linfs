@@ -16,8 +16,8 @@ class SectionFile : public Section {
   SectionFile() = delete;
   using Section::Section;
 
-  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader);
-  size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* writer);
+  size_t Read(uint64_t cursor, char* buf, size_t buf_size, ReaderWriter* reader);
+  size_t Write(uint64_t cursor, const char* buf, size_t buf_size, ReaderWriter* writer);
 };
 
 }  // namespace linfs

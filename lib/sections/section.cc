@@ -13,7 +13,8 @@ void Section::SetSize(uint64_t size, ReaderWriter* writer) {
 }
 
 void Section::SetNext(uint64_t next_offset, ReaderWriter* writer) {
-  writer->Write<uint64_t>(next_offset, base_offset() + offsetof(SectionLayout::Header, next_offset));
+  writer->Write<uint64_t>(next_offset,
+                          base_offset() + offsetof(SectionLayout::Header, next_offset));
   next_offset_ = next_offset;
 }
 

@@ -10,7 +10,7 @@ namespace linfs {
 std::unique_ptr<FileEntry> FileEntry::Create(uint64_t entry_offset,
                                              uint64_t /* entry_size */,
                                              ReaderWriter* writer,
-                                             const char *name) {
+                                             const char* name) {
   writer->Write<EntryLayout::FileHeader>(EntryLayout::FileHeader(0, name), entry_offset);
   return std::make_unique<FileEntry>(entry_offset, 0);
 }
@@ -29,7 +29,7 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader) {
   return sec_file;
 }
 
-size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader) {
+size_t FileEntry::Read(uint64_t cursor, char* buf, size_t buf_size, ReaderWriter* reader) {
   size_t read = 0;
   SectionFile sec_file = CursorToSection(cursor, reader);
   while (1) {
@@ -50,7 +50,8 @@ size_t FileEntry::Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter
   return read;
 }
 
-size_t FileEntry::Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator) {
+size_t FileEntry::Write(uint64_t cursor, const char* buf, size_t buf_size,
+                        ReaderWriter* reader_writer, SectionAllocator* allocator) {
   size_t written = 0;
   uint64_t old_cursor = cursor;
   SectionFile sec_file = CursorToSection(cursor, reader_writer);

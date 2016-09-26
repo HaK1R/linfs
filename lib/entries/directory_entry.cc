@@ -11,9 +11,10 @@ namespace linfs {
 std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
                                                        uint64_t entry_size,
                                                        ReaderWriter* writer,
-                                                       const char *name) {
-  writer->Write<EntryLayout::DirectoryHeader>(EntryLayout::DirectoryHeader{name}, entry_offset);
-  ClearEntries(entry_offset + sizeof(EntryLayout::DirectoryHeader), entry_offset + entry_size, writer);
+                                                       const char* name) {
+  writer->Write<EntryLayout::DirectoryHeader>(EntryLayout::DirectoryHeader(name), entry_offset);
+  ClearEntries(entry_offset + sizeof(EntryLayout::DirectoryHeader), entry_offset + entry_size,
+               writer);
   return std::make_unique<DirectoryEntry>(entry_offset);
 }
 
@@ -22,7 +23,8 @@ void DirectoryEntry::AddEntry(const Entry* entry,
                               SectionAllocator* allocator) {
   SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
 
-  bool success = sec_dir.AddEntry(entry->base_offset(), reader_writer, sizeof(EntryLayout::DirectoryHeader));
+  bool success = sec_dir.AddEntry(entry->base_offset(), reader_writer,
+                                  sizeof(EntryLayout::DirectoryHeader));
   while (!success && sec_dir.next_offset()) {
     sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
     success = sec_dir.AddEntry(entry->base_offset(), reader_writer);
@@ -32,7 +34,8 @@ void DirectoryEntry::AddEntry(const Entry* entry,
 
   SectionDirectory next_sec_dir = allocator->AllocateSection<SectionDirectory>(1, reader_writer);
   try {
-    ClearEntries(next_sec_dir.data_offset(), next_sec_dir.data_offset() + next_sec_dir.data_size(), reader_writer);
+    ClearEntries(next_sec_dir.data_offset(), next_sec_dir.data_offset() + next_sec_dir.data_size(),
+                 reader_writer);
     success = next_sec_dir.AddEntry(entry->base_offset(), reader_writer);
     assert(success && "no space in the just allocated section");
 
@@ -50,7 +53,8 @@ bool DirectoryEntry::RemoveEntry(const Entry* entry,
                                  SectionAllocator* allocator) {
   SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
 
-  bool success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer, sizeof(EntryLayout::DirectoryHeader));
+  bool success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer,
+                                     sizeof(EntryLayout::DirectoryHeader));
   while (!success && sec_dir.next_offset()) {
     SectionDirectory prev_sec_dir = sec_dir;
     sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
@@ -82,12 +86,12 @@ bool DirectoryEntry::HasEntries(ReaderWriter* reader) {
   return has_entries;
 }
 
-std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
+std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
                                                        ReaderWriter* reader) {
   return FindEntryByName(entry_name, reader, nullptr, nullptr);
 }
 
-std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
+std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
                                                        ReaderWriter* reader,
                                                        SectionDirectory* section_directory,
                                                        SectionDirectory::Iterator* iterator) {
@@ -119,7 +123,8 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char *entry_name,
   }
 }
 
-const char* DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* reader, char* next_buf) {
+const char* DirectoryEntry::GetNextEntryName(const char* prev, ReaderWriter* reader,
+                                             char* next_buf) {
   // TODO? better
   SectionDirectory sec_dir = {0,0,0}; // TODO compile; remove
   SectionDirectory::Iterator it(0);
@@ -153,7 +158,8 @@ const char* DirectoryEntry::GetNextEntryName(const char *prev, ReaderWriter* rea
   }
 }
 
-void DirectoryEntry::ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* writer) {
+void DirectoryEntry::ClearEntries(uint64_t entries_offset, uint64_t entries_end,
+                                  ReaderWriter* writer) {
   while (entries_offset != entries_end) {
     writer->Write<uint64_t>(0, entries_offset);
     entries_offset += sizeof(uint64_t);

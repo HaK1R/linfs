@@ -18,7 +18,7 @@ class Path {
     operator const char*() const { return c_str(); }
   };
 
-  static Path Normalize(const char *path_cstr, ErrorCode& error_code);
+  static Path Normalize(const char* path_cstr, ErrorCode& error_code);
 
   bool Empty() const { return data_.empty(); }
   Name FirstName() const;

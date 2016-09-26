@@ -54,18 +54,15 @@ BOOST_FIXTURE_TEST_CASE(open_many_files_in_sub_dir, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(open_file_with_complex_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kSuccess ==
-              OpenFile("a-Z0+9@#$%^&*(){}[]|_=:;.,'\"", file));
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile("a-Z0+9@#$%^&*(){}[]|_=:;.,'\"", file));
 }
 
 BOOST_FIXTURE_TEST_CASE(open_file_with_long_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kSuccess ==
-              OpenFile(std::string(kNameMax, 'a'), file));
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile(std::string(kNameMax, 'a'), file));
 }
 
 BOOST_FIXTURE_TEST_CASE(open_file_with_too_long_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kErrorNameTooLong ==
-              OpenFile(std::string(kNameMax + 1, 'a'), file));
+  BOOST_CHECK(ErrorCode::kErrorNameTooLong == OpenFile(std::string(kNameMax + 1, 'a'), file));
 }
 
 BOOST_FIXTURE_TEST_CASE(open_file_if_file_exists, LoadedFSFixture) {
@@ -77,8 +74,7 @@ BOOST_FIXTURE_TEST_CASE(open_file_if_file_exists, LoadedFSFixture) {
 BOOST_FIXTURE_TEST_CASE(open_file_if_dir_exists, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("file_or_directory"));
 
-  BOOST_CHECK(ErrorCode::kErrorIsDirectory ==
-              OpenFile("file_or_directory", file));
+  BOOST_CHECK(ErrorCode::kErrorIsDirectory == OpenFile("file_or_directory", file));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_file, LoadedFSFixture) {
@@ -140,8 +136,7 @@ BOOST_FIXTURE_TEST_CASE(write_ascii_data, LoadedFSFixture) {
 BOOST_FIXTURE_TEST_CASE(write_binary_data, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
 
-  BOOST_CHECK(ErrorCode::kSuccess ==
-              WriteFile(file, std::string("\0\x01\x02\x03\x04", 5)));
+  BOOST_CHECK(ErrorCode::kSuccess == WriteFile(file, std::string("\0\x01\x02\x03\x04", 5)));
 }
 
 BOOST_FIXTURE_TEST_CASE(write_many_bytes_one_write, LoadedFSFixture) {

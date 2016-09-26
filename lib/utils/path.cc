@@ -8,7 +8,7 @@ namespace fs {
 
 namespace linfs {
 
-Path Path::Normalize(const char *path_cstr, ErrorCode& error_code) {
+Path Path::Normalize(const char* path_cstr, ErrorCode& error_code) {
   std::string normalized;
   normalized.reserve(kPathMax + 1);
 

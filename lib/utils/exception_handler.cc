@@ -14,15 +14,19 @@ namespace linfs {
 ErrorCode ExceptionHandler::ToErrorCode(std::exception_ptr exception_pointer) noexcept {
   try {
     std::rethrow_exception(exception_pointer);
-  } catch (const std::bad_alloc&) {
+  }
+  catch (const std::bad_alloc&) {
     return ErrorCode::kErrorNoMemory;
-  } catch (const std::ios_base::failure& e) {
+  }
+  catch (const std::ios_base::failure& e) {
     if (e.code() == std::make_error_code(std::errc::io_error))
       return ErrorCode::kErrorInputOutput;
     return ErrorCode::kErrorDeviceUnknown;
-  } catch (const FormatException&) {
+  }
+  catch (const FormatException&) {
     return ErrorCode::kErrorFormat;
-  } catch (...) {
+  }
+  catch (...) {
     assert(0 && "caught unknown exception");
     return ErrorCode::kErrorUnknown;
   }

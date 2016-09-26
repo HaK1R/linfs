@@ -20,7 +20,7 @@ class FileEntry : public Entry {
   static std::unique_ptr<FileEntry> Create(uint64_t entry_offset,
                                            uint64_t entry_size,
                                            ReaderWriter* writer,
-                                           const char *name);
+                                           const char* name);
 
   FileEntry(uint64_t base_offset, uint64_t size)
       : Entry(Type::kFile, base_offset), size_(size) {}
@@ -28,8 +28,9 @@ class FileEntry : public Entry {
 
   uint64_t size() const { return size_; }
 
-  size_t Read(uint64_t cursor, char *buf, size_t buf_size, ReaderWriter* reader);
-  size_t Write(uint64_t cursor, const char *buf, size_t buf_size, ReaderWriter* reader_writer, SectionAllocator* allocator);
+  size_t Read(uint64_t cursor, char* buf, size_t buf_size, ReaderWriter* reader);
+  size_t Write(uint64_t cursor, const char* buf, size_t buf_size,
+               ReaderWriter* reader_writer, SectionAllocator* allocator);
 
  private:
   SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader);

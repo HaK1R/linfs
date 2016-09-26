@@ -28,7 +28,8 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
   return section;
 }
 
-void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* reader_writer) noexcept {
+void SectionAllocator::ReleaseSection(const Section& section,
+                                      ReaderWriter* reader_writer) noexcept {
   std::unique_lock<std::mutex> lock = none_entry_->Lock();
 
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
@@ -40,11 +41,13 @@ void SectionAllocator::ReleaseSection(const Section& section, ReaderWriter* read
   }
   catch (...) {
     // TODO? don't use std::cerr in shared libraries
-    std::cerr << "Leaked section at " << std::hex << section.base_offset() << " of size " << std::dec << section.size() << std::endl;
+    std::cerr << "Leaked section at " << std::hex << section.base_offset()
+              << " of size " << std::dec << section.size() << std::endl;
   }
 }
 
-void SectionAllocator::ReleaseSection(uint64_t section_offset, ReaderWriter* reader_writer) noexcept {
+void SectionAllocator::ReleaseSection(uint64_t section_offset,
+                                      ReaderWriter* reader_writer) noexcept {
   try {
     Section section = reader_writer->LoadSection(section_offset);
     ReleaseSection(section, reader_writer);

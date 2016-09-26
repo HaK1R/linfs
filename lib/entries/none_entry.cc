@@ -40,7 +40,8 @@ void NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
 }
 
 void NoneEntry::SetHead(uint64_t head_offset, ReaderWriter* writer) {
-  writer->Write<uint64_t>(head_offset, base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
+  writer->Write<uint64_t>(head_offset,
+                          base_offset() + offsetof(EntryLayout::NoneHeader, head_offset));
   head_offset_ = head_offset;
 }
 

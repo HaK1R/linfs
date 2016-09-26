@@ -19,21 +19,21 @@ class LinFS : public FilesystemInterface {
  public:
   void Release() override;
 
-  ErrorCode Load(const char *device_path) override;
+  ErrorCode Load(const char* device_path) override;
 
   // Service routines:
-  ErrorCode Format(const char *device_path, ClusterSize cluster_size) const override;
+  ErrorCode Format(const char* device_path, ClusterSize cluster_size) const override;
   ErrorCode Defrag() override { return ErrorCode::kErrorNotSupported; }
 
   // File operations:
-  FileInterface* OpenFile(const char *path, ErrorCode* error_code) override;
-  ErrorCode RemoveFile(const char *path) override;
+  FileInterface* OpenFile(const char* path, ErrorCode* error_code) override;
+  ErrorCode RemoveFile(const char* path) override;
 
   // Directory operations:
-  ErrorCode CreateDirectory(const char *path) override;
-  ErrorCode RemoveDirectory(const char *path) override;
-  const char* ListDirectory(const char *path, const char *prev,
-                            char *next_buf, ErrorCode* error_code) override;
+  ErrorCode CreateDirectory(const char* path) override;
+  ErrorCode RemoveDirectory(const char* path) override;
+  const char* ListDirectory(const char* path, const char* prev,
+                            char* next_buf, ErrorCode* error_code) override;
 
  private:
   virtual ~LinFS() = default;

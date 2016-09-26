@@ -45,19 +45,18 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_many_dirs, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_complex_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kSuccess ==
-              CreateDirectory("Hi Tom! These characters are allowed: "
-                              "a-Z0+9@#$%^&*(){}[]|_=:;.,'\""));
+  BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("Hi Tom! These characters are allowed: "
+                                                     "a-Z0+9@#$%^&*(){}[]|_=:;.,'\""));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_long_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kSuccess ==
-              CreateDirectory(std::string(kNameMax, 'a')));
+  BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory(std::string(kNameMax, 'a')));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_long_path, LoadedFSFixture) {
   std::string path(kNameMax, 'a');
-  while (path.size() < kPathMax) path += "/" + path;
+  while (path.size() < kPathMax)
+    path += "/" + path;
   path.resize(kPathMax);
 
   BOOST_CHECK(ErrorCode::kErrorNotFound == CreateDirectory(path));
@@ -70,13 +69,13 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_illegal_name, LoadedFSFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_name, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kErrorNameTooLong ==
-              CreateDirectory(std::string(kNameMax + 1, 'a')));
+  BOOST_CHECK(ErrorCode::kErrorNameTooLong == CreateDirectory(std::string(kNameMax + 1, 'a')));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_path, LoadedFSFixture) {
   std::string path(kNameMax, 'a');
-  while (path.size() < kPathMax + 1) path += "/" + path;
+  while (path.size() < kPathMax + 1)
+    path += "/" + path;
   path.resize(kPathMax + 1);
 
   BOOST_CHECK(ErrorCode::kErrorNameTooLong == CreateDirectory(path));
@@ -103,8 +102,7 @@ BOOST_FIXTURE_TEST_CASE(create_dir_is_case_sensitive, LoadedFSFixture) {
 BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 
-  BOOST_CHECK(ErrorCode::kErrorNotDirectory ==
-              CreateDirectory(".profile/home"));
+  BOOST_CHECK(ErrorCode::kErrorNotDirectory == CreateDirectory(".profile/home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_dir, LoadedFSFixture) {
@@ -226,8 +224,7 @@ BOOST_FIXTURE_TEST_CASE(list_sub_dir_with_many_dirs, LoadedFSFixture) {
   BOOST_CHECK(contents == expected);
 }
 
-BOOST_FIXTURE_TEST_CASE(list_dir_with_one_dir_that_was_removed,
-                        LoadedFSFixture) {
+BOOST_FIXTURE_TEST_CASE(list_dir_with_one_dir_that_was_removed, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
   BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("home"));
 
@@ -238,12 +235,10 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_one_dir_that_was_removed,
 
 BOOST_FIXTURE_TEST_CASE(list_dir_if_doesnt_exist, LoadedFSFixture) {
   std::vector<std::string> contents;
-  BOOST_CHECK(ErrorCode::kErrorNotFound ==
-              ListDirectory("path doesn't exist", contents));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == ListDirectory("path doesn't exist", contents));
 }
 
-BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_adding_new_ones,
-                        LoadedFSFixture) {
+BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_adding_new_ones, LoadedFSFixture) {
   // 0. create directories 0 and 1
   for (int i = 0; i < 2; ++i)
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
@@ -288,8 +283,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_adding_new_ones,
   BOOST_CHECK(it == end);
 }
 
-BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them,
-                        LoadedFSFixture) {
+BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFixture) {
   // 0. create directories 0, 1, 2
   for (int i = 0; i < 3; ++i)
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
