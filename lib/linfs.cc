@@ -154,7 +154,7 @@ FileInterface* LinFS::OpenFile(const char *path_cstr, ErrorCode* error_code) {
       return nullptr;
     }
     std::shared_ptr<FileEntry> shared_file = static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file)));
-    return new FileImpl(shared_file, accessor_.get(), allocator_.get());
+    return new FileImpl(shared_file, accessor_->Duplicate(), allocator_.get());
   } catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return nullptr;

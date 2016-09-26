@@ -19,8 +19,6 @@ class Entry {
 
   virtual ~Entry() = default;
 
-  // TODO? GetAsyncReader();
-
   Type type() const { return type_; }
   uint64_t base_offset() const { return base_offset_; }
   uint64_t section_offset() const { return base_offset() - sizeof(SectionLayout::Header); }

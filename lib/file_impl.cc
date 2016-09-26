@@ -16,7 +16,7 @@ size_t FileImpl::Read(char *buf, size_t buf_size, ErrorCode* error_code) {
   size_t read;
   try {
     std::unique_lock<std::mutex> lock = file_entry_->Lock();
-    read = file_entry_->Read(old_cursor, buf, buf_size, reader_writer_);
+    read = file_entry_->Read(old_cursor, buf, buf_size, reader_writer_.get());
   } catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return 0;
@@ -33,7 +33,7 @@ size_t FileImpl::Write(const char *buf, size_t buf_size, ErrorCode* error_code) 
   size_t written;
   try {
     std::unique_lock<std::mutex> lock = file_entry_->Lock();
-    written = file_entry_->Write(old_cursor, buf, buf_size, reader_writer_, allocator_);
+    written = file_entry_->Write(old_cursor, buf, buf_size, reader_writer_.get(), allocator_);
   } catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return 0;

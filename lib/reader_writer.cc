@@ -19,9 +19,21 @@ namespace fs {
 namespace linfs {
 
 ReaderWriter::ReaderWriter(const char* device_path, std::ios_base::openmode mode)
-    : device_(device_path, mode | std::ios_base::binary) {
-  if (!device_.good())
+    : device_path_(device_path), device_mode_(mode | std::ios_base::binary) {
+  // Disable buffering for the stream.
+  device_.rdbuf()->pubsetbuf(nullptr, 0);
+
+  device_.open(device_path_.c_str(), device_mode_);
+  if (!device_.is_open() || !device_.good())
     throw std::ios_base::failure("open");
+}
+
+std::unique_ptr<ReaderWriter> ReaderWriter::Duplicate() {
+  std::ios_base::openmode clear_mask = std::ios_base::binary |
+                                       std::ios_base::in | std::ios_base::out;
+
+  return std::make_unique<ReaderWriter>(device_path_.c_str(),
+                                        device_mode_ & clear_mask);
 }
 
 size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {

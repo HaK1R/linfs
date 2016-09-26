@@ -22,6 +22,11 @@ class ReaderWriter {
  public:
   ReaderWriter(const char* device_path, std::ios_base::openmode mode);
 
+  // Duplicate the file descriptor and create a new ReaderWriter, which
+  // owns that file descriptor.  The created ReaderWriter operates with
+  // the same device in the same mode.
+  std::unique_ptr<ReaderWriter> Duplicate();
+
   template<typename T>
   T Read(uint64_t offset) {
     return ReadIntegral<T>(std::is_integral<T>(), offset);
@@ -113,8 +118,13 @@ class ReaderWriter {
     Write(reinterpret_cast<const char*>(&value), sizeof value, offset);
   }
 
+  // File descriptor and its mutex.
   std::fstream device_;
   std::mutex device_mutex_;
+
+  // Required information for Duplicate().
+  const std::string device_path_;
+  const std::ios_base::openmode device_mode_;
 };
 
 }  // namespace linfs
