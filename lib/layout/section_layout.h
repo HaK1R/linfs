@@ -16,7 +16,7 @@ class SectionLayout {
   static_assert(std::is_trivially_copyable<Header>::value,
                 "SectionLayout::Header isn't a trivially copyable type");
   static_assert(std::is_standard_layout<Header>::value,
-                "SectionLayout::Header isn't a standard-layout class");
+                "SectionLayout::Header isn't a standard-layout type");
 
   // The section's body looks like:
   // struct Body {

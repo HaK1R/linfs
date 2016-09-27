@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "lib/utils/byte_order.h"
+
 namespace fs {
 
 namespace linfs {
@@ -22,13 +24,21 @@ DeviceLayout::Header DeviceLayout::ParseHeader(ReaderWriter* reader, ErrorCode& 
     return from_file;
   }
 
-  // TODO fix endianness
+  // Convert values to host's byte order.
+  from_file.none_entry_offset = ByteOrder::Unpack(from_file.none_entry_offset);
+  from_file.root_entry_offset = ByteOrder::Unpack(from_file.root_entry_offset);
+  from_file.total_clusters = ByteOrder::Unpack(from_file.total_clusters);
+
   error_code = ErrorCode::kSuccess;
   return from_file;
 }
 
 void DeviceLayout::WriteHeader(Header header, ReaderWriter* writer) {
-  // TODO fix endianness
+  // Convert values to device's byte order.
+  header.none_entry_offset = ByteOrder::Pack(header.none_entry_offset);
+  header.root_entry_offset = ByteOrder::Pack(header.root_entry_offset);
+  header.total_clusters = ByteOrder::Pack(header.total_clusters);
+
   writer->Write<DeviceLayout::Header>(header, 0);
 }
 

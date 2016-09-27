@@ -12,6 +12,7 @@
 #include "fs/error_code.h"
 #include "lib/entries/entry.h"
 #include "lib/sections/section.h"
+#include "lib/utils/byte_order.h"
 
 namespace fs {
 
@@ -76,7 +77,8 @@ class ReaderWriter {
   T LoadSection(uint64_t section_offset, Args&&... args) {
     static_assert(std::is_base_of<Section, T>::value, "T must be derived from Section");
     SectionLayout::Header header = Read<SectionLayout::Header>(section_offset);
-    return T(section_offset, header.size, header.next_offset, std::forward<Args>(args)...);
+    return T(section_offset, ByteOrder::Unpack(header.size),
+             ByteOrder::Unpack(header.next_offset), std::forward<Args>(args)...);
   }
   void SaveSection(Section section);
 
@@ -87,8 +89,7 @@ class ReaderWriter {
   T ReadIntegral(std::true_type, uint64_t offset) {
     T value = 0;
     Read(offset, reinterpret_cast<char*>(&value), sizeof value);
-    // TODO if error_code then check endianness
-    return value;
+    return ByteOrder::Unpack(value);
   }
   template<typename T>
   T ReadIntegral(std::false_type, uint64_t offset) {
@@ -100,7 +101,7 @@ class ReaderWriter {
   }
   template<typename T>
   void WriteIntegral(std::true_type, T value, uint64_t offset) {
-    // TODO check endianness: typename = std::enable_if_t<!std::is_integral<T>::value>>
+    value = ByteOrder::Pack(value);
     Write(reinterpret_cast<const char*>(&value), sizeof value, offset);
   }
   template<typename T>

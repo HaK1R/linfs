@@ -37,8 +37,10 @@ class DeviceLayout {
                 "DeviceLayout::Header requires ClusterSize be of size uint8_t");
   static_assert(std::is_trivially_copyable<Header>::value,
                 "DeviceLayout::Header isn't a trivially copyable type");
+  static_assert(std::is_standard_layout<Header>::value,
+                "DeviceLayout::Header isn't a standard-layout type");
 
-  // The device's body looks as follows, and used only to calculate offsets:
+  // The device's body looks as follows, and is used only to calculate offsets:
   struct __attribute__((packed)) Body {
     Body(const Header& header)
       : root({{(1 << header.cluster_size_log2) - header.root_entry_offset + sizeof root.section, 0}}) {}
