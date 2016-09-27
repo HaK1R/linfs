@@ -64,7 +64,8 @@ struct LoadedFSFixture : FormattedFSFixture {
   LoadedFSFixture();
   fs::ErrorCode CreateDirectory(const std::string& path);
   fs::ErrorCode RemoveDirectory(const std::string& path);
-  fs::ErrorCode OpenFile(const std::string& path, ScopedFile& out_file);
+  fs::ErrorCode OpenFile(const std::string& path, ScopedFile& out_file,
+                         bool creat_excl = false);
   fs::ErrorCode WriteFile(ScopedFile& file, const std::string& data);
   fs::ErrorCode ReadFile(ScopedFile& file, std::string& data);
   fs::ErrorCode CreateFile(const std::string& path,

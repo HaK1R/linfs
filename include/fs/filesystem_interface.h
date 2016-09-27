@@ -65,16 +65,21 @@ class FilesystemInterface {
   // 1. Open a file
   //
   // ErrorCode error_code;
-  // IFile* file = fs->OpenFile("/root/.profile", error_code);
+  // IFile* file = fs->OpenFile("/root/.profile", false, error_code);
   // if (file == nullptr)
   //   return error_code;
   // ...
   // file->Close();
   //
+  // Notes:
+  //  * creat_excl is an analogue of ```O_CREAT | O_EXCL``` mode in open().
+  //
   // Thread safety: Thread safe
-  virtual FileInterface* OpenFile(const char* path, ErrorCode* error_code) = 0;
+  virtual FileInterface* OpenFile(const char* path, bool creat_excl,
+                                  ErrorCode* error_code) = 0;
 
   // 2. Remove a file
+  //
   // ErrorCode error_code = fs->RemoveFile("/root/.profile");
   // if (error_code == ErrorCode::kSuccess)
   //   ...

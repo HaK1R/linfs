@@ -28,6 +28,13 @@ BOOST_FIXTURE_TEST_CASE(open_one_file, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == OpenFile(".profile", file));
 }
 
+BOOST_FIXTURE_TEST_CASE(open_one_file_two_times, LoadedFSFixture) {
+  ScopedFile file1, file2;
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file1));
+
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile(".profile", file2));
+}
+
 BOOST_FIXTURE_TEST_CASE(open_two_files, LoadedFSFixture) {
   ScopedFile file1, file2;
   BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile("1", file1));
@@ -75,6 +82,16 @@ BOOST_FIXTURE_TEST_CASE(open_file_if_dir_exists, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("file_or_directory"));
 
   BOOST_CHECK(ErrorCode::kErrorIsDirectory == OpenFile("file_or_directory", file));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_if_creat_excl, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile(".profile.lock", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_if_file_exists_and_creat_excl, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile.lock"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == OpenFile(".profile.lock", file, true));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_file, LoadedFSFixture) {

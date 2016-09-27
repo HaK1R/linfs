@@ -70,9 +70,10 @@ ErrorCode LoadedFSFixture::RemoveDirectory(const std::string& path) {
   return fs->RemoveDirectory(path.c_str());
 }
 
-ErrorCode LoadedFSFixture::OpenFile(const std::string& path, ScopedFile& out_file) {
+ErrorCode LoadedFSFixture::OpenFile(const std::string& path, ScopedFile& out_file,
+                                    bool creat_excl) {
   ErrorCode error_code;
-  out_file.reset(fs->OpenFile(path.c_str(), &error_code));
+  out_file.reset(fs->OpenFile(path.c_str(), creat_excl, &error_code));
   // Check that |out_file| and |error_code| are synchronized.
   BOOST_REQUIRE((out_file.get() != nullptr) == (error_code == ErrorCode::kSuccess));
   if (error_code != ErrorCode::kSuccess)
@@ -102,7 +103,7 @@ ErrorCode LoadedFSFixture::ReadFile(ScopedFile& file, std::string& data) {
 
 ErrorCode LoadedFSFixture::CreateFile(const std::string& path, const std::string& data) {
   ScopedFile file;
-  ErrorCode error_code = OpenFile(path, file);
+  ErrorCode error_code = OpenFile(path, file, true);
   if (error_code == ErrorCode::kSuccess && !data.empty())
     error_code = WriteFile(file, data);
   return error_code;

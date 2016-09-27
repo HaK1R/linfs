@@ -131,7 +131,7 @@ ErrorCode LinFS::Format(const char* device_path, ClusterSize cluster_size) const
   }
 }
 
-FileInterface* LinFS::OpenFile(const char* path_cstr, ErrorCode* error_code) {
+FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode* error_code) {
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
@@ -157,6 +157,11 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, ErrorCode* error_code) {
       *error_code = ErrorCode::kErrorIsDirectory;
       return nullptr;
     }
+    else if (creat_excl) {
+      *error_code = ErrorCode::kErrorExists;
+      return nullptr;
+    }
+
     std::shared_ptr<FileEntry> shared_file =
         static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file)));
     return new FileImpl(shared_file, accessor_->Duplicate(), allocator_.get());
