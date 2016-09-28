@@ -27,6 +27,7 @@ class FileImpl : public FileInterface {
   size_t Write(const char* buf, size_t buf_size, ErrorCode* error_code) override;
   uint64_t GetCursor() const override;
   ErrorCode SetCursor(uint64_t cursor) override;
+  uint64_t GetSize() const override;
   void Close() override;
 
  private:

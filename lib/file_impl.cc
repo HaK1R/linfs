@@ -59,6 +59,10 @@ ErrorCode FileImpl::SetCursor(uint64_t cursor) {
   return ErrorCode::kSuccess;
 }
 
+uint64_t FileImpl::GetSize() const {
+  return file_entry_->size();
+}
+
 void FileImpl::Close() {
   delete this;
 }
