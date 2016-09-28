@@ -273,23 +273,23 @@ ErrorCode LinFS::RemoveDirectory(const char* path_cstr) {
   }
 }
 
-const char* LinFS::ListDirectory(const char* path_cstr, const char* prev,
-                                 char* next_buf, ErrorCode* error_code) {
+uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
+                              char* next_buf, ErrorCode* error_code) {
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
-      return nullptr;
+      return 0;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path, *error_code);
     if (*error_code != ErrorCode::kSuccess)
-      return nullptr;
+      return 0;
 
     std::shared_lock<SharedMutex> lock = cwd->LockShared();
-    return cwd->GetNextEntryName(prev, accessor_.get(), next_buf);
+    return cwd->GetNextEntryName(cookie, accessor_.get(), next_buf);
   }
   catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
-    return nullptr;
+    return 0;
   }
 }
 

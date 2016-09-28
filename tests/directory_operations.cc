@@ -279,13 +279,13 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_adding_new_ones, LoadedFSF
   BOOST_CHECK(*it++ == to_s(4));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 
-  // 10. it points to end
+  // 10. it points to the end
   BOOST_CHECK(it == end);
 }
 
 BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFixture) {
-  // 0. create directories 0, 1, 2
-  for (int i = 0; i < 3; ++i)
+  // 0. create directories 0, 1, 2, 3, 4, 5
+  for (int i = 0; i < 6; ++i)
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
 
   // 1. create directory iterator
@@ -293,23 +293,60 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(ec == ErrorCode::kSuccess);
   BOOST_CHECK(it != end);
 
-  // 2. remove directory 1
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("1"));
+  // 2. remove directory 3
+  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("3"));
 
   // 3. it points to 0
   BOOST_CHECK(*it++ == to_s(0));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
   BOOST_CHECK(it != end);
 
-  // 4. remove directory 0
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("0"));
+  // 4. remove directory 2
+  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("2"));
 
-  // 5. it points to 2
-  BOOST_CHECK(*it++ == to_s(2));
+  // 5. it points to 1
+  BOOST_CHECK(*it++ == to_s(1));
+  BOOST_CHECK(ec == ErrorCode::kSuccess);
+  BOOST_CHECK(it != end);
+
+  // 6. remove directory 4
+  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("4"));
+
+  // 7. it points to 4.  Surprise! It's already in the cache.
+  BOOST_CHECK(*it++ == to_s(4));
+  BOOST_CHECK(ec == ErrorCode::kSuccess);
+  BOOST_CHECK(it != end);
+
+  // 8. remove directories 0, 1
+  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("0"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("1"));
+
+  // 9. it points to 5
+  BOOST_CHECK(*it++ == to_s(5));
   BOOST_CHECK(ec == ErrorCode::kSuccess);
 
-  // 6. it points to end
+  // 10. it points to the end
   BOOST_CHECK(it == end);
+}
+
+BOOST_FIXTURE_TEST_CASE(list_dir_if_invalid_cookie, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  uint64_t cookie;
+  std::string buf(kNameMax, '\0');
+  cookie = fs->ListDirectory("/", 0, &buf[0], &ec);
+  BOOST_REQUIRE(ErrorCode::kSuccess == ec);
+
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie + 1, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 100 + 1, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 10000 + 1, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 1000000 + 1, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

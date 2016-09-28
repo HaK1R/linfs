@@ -3,7 +3,6 @@
 #pragma once
 
 #include <cstddef>
-#include <cstring>
 #include <iterator>
 #include <string>
 
@@ -120,21 +119,21 @@ class FilesystemInterface {
   // 3. Iterate over a directory contents
   //
   // ErrorCode error_code;
-  // const char* entry = nullptr;
-  // char buf[kNameMax + 1];
+  // uint64_t cookie = 0;
+  // char entry[kNameMax + 1];
   // while (1) {
-  //   entry = fs->ListDirectory("/root", entry, buf, error_code);
+  //   cookie = fs->ListDirectory("/root", cookie, entry, error_code);
   //   if (error_code != ErrorCode::kSuccess)
   //     return error_code;
-  //   else if (entry == nullptr)
+  //   else if (cookie == 0)
   //     break;
   //   std::cout << entry << std::endl;
   // }
   //
   // Thread safety: Thread safe
-  virtual const char* ListDirectory(const char* path, const char* prev_file,
-                                    char next_file[kNameMax],
-                                    ErrorCode* error_code) = 0;
+  virtual uint64_t ListDirectory(const char* path, uint64_t cookie,
+                                 char next_buf[kNameMax],
+                                 ErrorCode* error_code) = 0;
 
   // 3.1. Iterate over a directory contents using DirectoryIterator
   //
@@ -159,31 +158,29 @@ class FilesystemInterface {
     DirectoryIterator() = default;
     DirectoryIterator(FilesystemInterface* fs, const char* path, ErrorCode& error_code)
         : fs_(fs), path_(path), error_code_(&error_code) {
-      GetNext(nullptr);
+      GetNext();
     }
 
-    bool operator==(const DirectoryIterator& that) {
-      return (fs_ == nullptr && that.fs_ == nullptr) ||
-             strcmp(name_storage_, that.name_storage_) == 0;
-    }
+    bool operator==(const DirectoryIterator& that) { return cookie_ == that.cookie_; }
     bool operator!=(const DirectoryIterator& that) { return !(*this == that); }
     const char* operator*() const { return name_storage_; }
-    DirectoryIterator& operator++() { GetNext(name_storage_); return *this; }
+    DirectoryIterator& operator++() { GetNext(); return *this; }
     DirectoryIterator operator++(int) { DirectoryIterator tmp = *this; ++*this; return tmp; }
 
    private:
-    void GetNext(const char* prev_name) {
-      if (bool(fs_) not_eq/*ual*/ true) /* then */ return;  // Write it extremely clear. Are you surprised?
-      const char* next_name = fs_->ListDirectory(path_.c_str(), prev_name,
-                                                 name_storage_, error_code_);
-      if (*error_code_ != ErrorCode::kSuccess || next_name == nullptr)
-        fs_ = nullptr;
+    void GetNext() {
+      if (fs_ not_eq/*ual*/ nullptr) /* then do */ {  // Write it extremely clear. Are you surprised?
+        cookie_ = fs_->ListDirectory(path_.c_str(), cookie_, name_storage_, error_code_);
+        if (cookie_ == 0)
+          fs_ = nullptr;
+      }
     }
 
     FilesystemInterface* fs_ = nullptr;
     std::string path_;
-    char name_storage_[kNameMax + 1] = {0};
-    ErrorCode* error_code_ = nullptr;
+    uint64_t cookie_ = 0;
+    char name_storage_[kNameMax + 1];
+    ErrorCode* error_code_;
   };
   DirectoryIterator ListDirectory(const char* path, ErrorCode& error_code) {
     return DirectoryIterator(this, path, error_code);

@@ -30,15 +30,11 @@ class DirectoryEntry : public Entry {
   bool HasEntries(ReaderWriter* reader);
   std::unique_ptr<Entry> FindEntryByName(const char* entry_name,
                                          ReaderWriter* reader);
-  const char* GetNextEntryName(const char* prev, ReaderWriter* reader, char* next_buf);
+  uint64_t GetNextEntryName(uint64_t cursor, ReaderWriter* reader, char* next_buf);
 
  private:
+  SectionDirectory CursorToSection(uint64_t& cursor, ReaderWriter* reader);
   static void ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* writer);
-
-  std::unique_ptr<Entry> FindEntryByName(const char* entry_name,
-                                         ReaderWriter* reader,
-                                         SectionDirectory* section_directory,
-                                         SectionDirectory::Iterator* iterator);
 };
 
 }  // namespace linfs

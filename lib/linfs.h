@@ -32,8 +32,8 @@ class LinFS : public FilesystemInterface {
   // Directory operations:
   ErrorCode CreateDirectory(const char* path) override;
   ErrorCode RemoveDirectory(const char* path) override;
-  const char* ListDirectory(const char* path, const char* prev,
-                            char* next_buf, ErrorCode* error_code) override;
+  uint64_t ListDirectory(const char* path, uint64_t cookie,
+                         char* next_buf, ErrorCode* error_code) override;
 
  private:
   virtual ~LinFS() = default;
