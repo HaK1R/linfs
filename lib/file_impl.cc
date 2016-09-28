@@ -46,6 +46,19 @@ size_t FileImpl::Write(const char* buf, size_t buf_size, ErrorCode* error_code) 
   return written;
 }
 
+uint64_t FileImpl::GetCursor() const {
+  // Implicit call of std::atomic::load.
+  return cursor_;
+}
+
+ErrorCode FileImpl::SetCursor(uint64_t cursor) {
+  if (cursor > file_entry_->size())
+    return ErrorCode::kErrorCursorTooBig;
+  // Implicit call of std::atomic::store.
+  cursor_ = cursor;
+  return ErrorCode::kSuccess;
+}
+
 void FileImpl::Close() {
   delete this;
 }

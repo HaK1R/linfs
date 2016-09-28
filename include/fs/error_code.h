@@ -28,6 +28,9 @@ enum class ErrorCode : uint8_t {
   kErrorIsDirectory,        // error: it is a directory
   kErrorNotDirectory,       // error: not a directory
   kErrorDirectoryNotEmpty,  // error: directory not empty
+
+  // File errors:
+  kErrorCursorTooBig,       // error: cursor exceeds the actual file size
 };
 
 }  // namespace fs

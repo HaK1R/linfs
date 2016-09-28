@@ -322,4 +322,115 @@ BOOST_FIXTURE_TEST_CASE(read_many_bytes_two_files, LoadedFSFixture) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_open_if_file_created, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_open_if_file_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_read_zero_bytes, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  std::string from_file(0, '\0');
+  BOOST_REQUIRE(ErrorCode::kSuccess == ReadFile(file, from_file));
+  BOOST_REQUIRE(from_file == "");
+
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_read_some_bytes, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "12"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  std::string from_file(1, '\0');
+  BOOST_REQUIRE(ErrorCode::kSuccess == ReadFile(file, from_file));
+  BOOST_REQUIRE(from_file == "1");
+
+  BOOST_CHECK(1 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_if_eof, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  std::string from_file(2, '\0');
+  BOOST_REQUIRE(ErrorCode::kSuccess == ReadFile(file, from_file));
+  BOOST_REQUIRE(from_file == "1");
+
+  BOOST_CHECK(1 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_write_zero_bytes, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  BOOST_REQUIRE(ErrorCode::kSuccess == WriteFile(file, ""));
+
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(get_cursor_after_write_some_bytes, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  BOOST_REQUIRE(ErrorCode::kSuccess == WriteFile(file, "12"));
+
+  BOOST_CHECK(2 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_same_place, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  BOOST_CHECK(ErrorCode::kSuccess == file->SetCursor(0));
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_forward, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "123"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  std::string from_file(1, '\0');
+  BOOST_REQUIRE(ErrorCode::kSuccess == ReadFile(file, from_file));
+  BOOST_REQUIRE(from_file == "1");
+
+  BOOST_CHECK(ErrorCode::kSuccess == file->SetCursor(2));
+  BOOST_CHECK(2 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_most_forward, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "123"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  BOOST_REQUIRE(ErrorCode::kSuccess == WriteFile(file, "1"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == file->SetCursor(3));
+  BOOST_CHECK(3 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_backward, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "12"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  std::string from_file(3, '\0');
+  BOOST_REQUIRE(ErrorCode::kSuccess == ReadFile(file, from_file));
+  BOOST_REQUIRE(from_file == "12");
+
+  BOOST_CHECK(ErrorCode::kSuccess == file->SetCursor(1));
+  BOOST_CHECK(1 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_most_backward, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+  BOOST_REQUIRE(ErrorCode::kSuccess == WriteFile(file, "12"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == file->SetCursor(0));
+  BOOST_CHECK(0 == file->GetCursor());
+}
+
+BOOST_FIXTURE_TEST_CASE(set_cursor_if_greater_than_file_size, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", "12"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  BOOST_CHECK(ErrorCode::kErrorCursorTooBig == file->SetCursor(3));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

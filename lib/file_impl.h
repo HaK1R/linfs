@@ -25,6 +25,8 @@ class FileImpl : public FileInterface {
   // |buf| and |error_code| are always not null, otherwise UB
   size_t Read(char* buf, size_t buf_size, ErrorCode* error_code) override;
   size_t Write(const char* buf, size_t buf_size, ErrorCode* error_code) override;
+  uint64_t GetCursor() const override;
+  ErrorCode SetCursor(uint64_t cursor) override;
   void Close() override;
 
  private:
