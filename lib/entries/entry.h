@@ -2,13 +2,17 @@
 
 #include <cstdint>
 #include <mutex>
+#include <memory>
 
 #include "lib/layout/section_layout.h"
+#include "lib/sections/section.h"
 #include "lib/utils/shared_mutex.h"  // for std::shared_lock, SharedMutex
 
 namespace fs {
 
 namespace linfs {
+
+class ReaderWriter;
 
 class Entry {
  public:
@@ -17,6 +21,14 @@ class Entry {
     kDirectory = 1,  // entry's sections represent a directory
     kFile = 2        // entry's sections represent a file
   };
+
+  // Loads an entry from the device.
+  static std::unique_ptr<Entry> Load(uint64_t entry_offset,
+                                     ReaderWriter* reader,
+                                     char* name_buf = nullptr);
+
+  // Creates an entry on the device.  See *Entry classes.
+  // static std::unique_ptr<Entry> Create(...);
 
   virtual ~Entry() = default;
 
@@ -39,6 +51,9 @@ class Entry {
  protected:
   Entry(Type type, uint64_t base_offset)
       : type_(type), base_offset_(base_offset) {}
+
+  Section CursorToSection(uint64_t& cursor, ReaderWriter* reader,
+                          uint64_t start_position);
 
   // Thread safety is guaranteed by this guy.
   SharedMutex mutex_;

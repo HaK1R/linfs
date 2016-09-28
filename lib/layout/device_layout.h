@@ -7,7 +7,7 @@
 #include "fs/filesystem_interface.h"
 #include "lib/layout/entry_layout.h"
 #include "lib/layout/section_layout.h"
-#include "lib/reader_writer.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
@@ -17,7 +17,8 @@ class DeviceLayout {
  public:
   struct __attribute__((packed, aligned(8))) Header {
     Header() = default;
-    Header(FilesystemInterface::ClusterSize cluster_size) : cluster_size_log2(static_cast<uint8_t>(cluster_size)) {}
+    Header(FilesystemInterface::ClusterSize cluster_size)
+        : cluster_size_log2(static_cast<uint8_t>(cluster_size)) {}
     // ---
     char identifier[8] = {'\0', 'f', 'i', 'l', 'e', 'f', 's', '='};  // fs code
     struct __attribute__((packed)) {
@@ -43,7 +44,8 @@ class DeviceLayout {
   // The device's body looks as follows, and is used only to calculate offsets:
   struct __attribute__((packed)) Body {
     Body(const Header& header)
-      : root({{(1 << header.cluster_size_log2) - header.root_entry_offset + sizeof root.section, 0}}) {}
+        : root({/*section=*/{(1 << header.cluster_size_log2) -
+                                 header.root_entry_offset + sizeof root.section, 0}}) {}
     // ---
     const EntryLayout::NoneHeader none_entry{0};
     const struct __attribute__((packed)) {

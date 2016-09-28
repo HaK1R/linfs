@@ -2,9 +2,10 @@
 
 #include <cstddef>
 #include <exception>
+#include <memory>
 #include <utility>
 
-#include "lib/entries/file_entry.h"
+#include "lib/entries/entry.h"
 #include "lib/file_impl.h"
 #include "lib/layout/device_layout.h"
 #include "lib/utils/exception_handler.h"
@@ -19,10 +20,14 @@ namespace {
 using std::static_pointer_cast;
 
 // Handwritten static_pointer_cast for std::unique_ptr.
-template<typename T, typename U>
+template <typename T, typename U>
 std::unique_ptr<T>
 static_pointer_cast(std::unique_ptr<U>&& u) noexcept {
   return std::unique_ptr<T>(static_cast<T*>(u.release()));
+}
+
+uint64_t ToBytes(uint8_t cluster_size) {
+  return 1ULL << cluster_size;
 }
 
 }  // namespace
@@ -31,7 +36,7 @@ void LinFS::Release() {
   delete this;
 }
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 std::unique_ptr<T> LinFS::AllocateEntry(Args&&... args) {
   Section place = allocator_->AllocateSection(1, accessor_.get());
 
@@ -39,7 +44,8 @@ std::unique_ptr<T> LinFS::AllocateEntry(Args&&... args) {
   try {
     entry = T::Create(place.data_offset(), place.data_size(),
                       accessor_.get(), std::forward<Args>(args)...);
-  } catch (...) {
+  }
+  catch (...) {
     allocator_->ReleaseSection(place, accessor_.get());
     throw;
   }
@@ -92,12 +98,13 @@ ErrorCode LinFS::Load(const char* device_path) {
       return error_code;
     }
 
-    std::unique_ptr<NoneEntry> none_entry =
-        static_pointer_cast<NoneEntry>(accessor_->LoadEntry(header.none_entry_offset));
-    allocator_ = std::make_unique<SectionAllocator>((1 << header.cluster_size_log2),
+    std::unique_ptr<NoneEntry> none_entry = static_pointer_cast<NoneEntry>(
+        Entry::Load(header.none_entry_offset, accessor_.get()));
+    allocator_ = std::make_unique<SectionAllocator>(ToBytes(header.cluster_size_log2),
                                                     uint64_t(header.total_clusters),
                                                     std::move(none_entry));
-    root_entry_ = static_pointer_cast<DirectoryEntry>(accessor_->LoadEntry(header.root_entry_offset));
+    root_entry_ = static_pointer_cast<DirectoryEntry>(
+        Entry::Load(header.root_entry_offset, accessor_.get()));
     return ErrorCode::kSuccess;
   }
   catch (...) {
@@ -110,17 +117,17 @@ ErrorCode LinFS::Load(const char* device_path) {
 
 ErrorCode LinFS::Format(const char* device_path, ClusterSize cluster_size) const {
   try {
-    std::unique_ptr<ReaderWriter> writer(new ReaderWriter(device_path,
-                                                          std::ios_base::out | std::ios_base::trunc));
+    std::unique_ptr<ReaderWriter> writer(
+        new ReaderWriter(device_path, std::ios_base::out | std::ios_base::trunc));
 
     DeviceLayout::Header header(cluster_size);
     DeviceLayout::WriteHeader(header, writer.get());
 
     DeviceLayout::Body body(header);
     NoneEntry::Create(header.none_entry_offset, sizeof body.none_entry, writer.get());
-    Section root_section(header.root_entry_offset - sizeof body.root.section,
-                         body.root.section.size, body.root.section.next_offset);
-    writer->SaveSection(root_section);
+    Section root_section =
+        Section::Create(header.root_entry_offset - sizeof body.root.section,
+                        body.root.section.size, writer.get());
     DirectoryEntry::Create(header.root_entry_offset, root_section.data_size(),
                            writer.get(), "/");
     return ErrorCode::kSuccess;

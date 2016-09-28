@@ -8,7 +8,7 @@
 #include "lib/entries/entry.h"
 #include "lib/entry_cache.h"
 #include "lib/utils/path.h"
-#include "lib/reader_writer.h"
+#include "lib/utils/reader_writer.h"
 #include "lib/section_allocator.h"
 
 namespace fs {
@@ -38,7 +38,7 @@ class LinFS : public FilesystemInterface {
  private:
   virtual ~LinFS() = default;
 
-  template<typename T, typename... Args> std::unique_ptr<T> AllocateEntry(Args&&... args);
+  template <typename T, typename... Args> std::unique_ptr<T> AllocateEntry(Args&&... args);
   void ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept;
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);

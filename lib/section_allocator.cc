@@ -1,6 +1,5 @@
 #include "lib/section_allocator.h"
 
-#include <cstdint>
 #include <ios>
 #include <iostream>
 
@@ -21,8 +20,8 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
 
   // There is nothing in NoneEntry chain. Allocate a new cluster.
   uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
-  Section section(total_clusters_ * cluster_size_, required_clusters * cluster_size_, 0);
-  reader_writer->SaveSection(section);
+  Section section = Section::Create(total_clusters_ * cluster_size_,
+                                    required_clusters * cluster_size_, reader_writer);
   reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
   SetTotalClusters(total_clusters_ + required_clusters, reader_writer);
   return section;
@@ -49,7 +48,7 @@ void SectionAllocator::ReleaseSection(const Section& section,
 void SectionAllocator::ReleaseSection(uint64_t section_offset,
                                       ReaderWriter* reader_writer) noexcept {
   try {
-    Section section = reader_writer->LoadSection(section_offset);
+    Section section = Section::Load(section_offset, reader_writer);
     ReleaseSection(section, reader_writer);
   }
   catch (...) {

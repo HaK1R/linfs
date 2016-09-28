@@ -10,11 +10,11 @@ CPPFLAGS += -DSYSTEM_ORDER=LittleEndian
 # !!! Don't modify it unless you are sure what you are doing !!!
 CPPFLAGS += -DDEVICE_ORDER=LittleEndian
 
-SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc reader_writer.cc section_allocator.cc
-SRCS += $(addprefix entries/,directory_entry.cc file_entry.cc none_entry.cc)
+SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc section_allocator.cc
+SRCS += $(addprefix entries/,directory_entry.cc entry.cc file_entry.cc none_entry.cc)
 SRCS += $(addprefix layout/,device_layout.cc)
 SRCS += $(addprefix sections/,section.cc section_directory.cc section_file.cc)
-SRCS += $(addprefix utils/,exception_handler.cc format_exception.cc path.cc)
+SRCS += $(addprefix utils/,exception_handler.cc format_exception.cc path.cc reader_writer.cc)
 
 OBJS = $(SRCS:.cc=.o)
 

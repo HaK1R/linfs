@@ -9,16 +9,12 @@
 #include <mutex>
 #include <type_traits>
 
-#include "fs/error_code.h"
-#include "lib/entries/entry.h"
-#include "lib/sections/section.h"
 #include "lib/utils/byte_order.h"
 
 namespace fs {
 
 namespace linfs {
 
-// TODO? move to util/
 class ReaderWriter {
  public:
   ReaderWriter(const char* device_path, std::ios_base::openmode mode);
@@ -28,19 +24,19 @@ class ReaderWriter {
   // the same device in the same mode.
   std::unique_ptr<ReaderWriter> Duplicate();
 
-  template<typename T>
+  template <typename T>
   T Read(uint64_t offset) {
     return ReadIntegral<T>(std::is_integral<T>(), offset);
   }
   size_t Read(uint64_t offset, char* buf, size_t buf_size);
 
-  template<typename T, typename U>
+  template <typename T, typename U>
   void Write(U&& u, uint64_t offset) {
     WriteIntegral<T>(std::is_integral<T>(), std::forward<U>(u), offset);
   }
   size_t Write(const char* buf, size_t buf_size, uint64_t offset);
 
-  template<typename T>
+  template <typename T>
   class ReadIterator : public std::iterator<std::input_iterator_tag,
                                             T, uint64_t, const T*, const T&> {
     using _Base = std::iterator<std::input_iterator_tag, T, uint64_t, const T*, const T&>;
@@ -73,25 +69,14 @@ class ReaderWriter {
     ReaderWriter* reader_ = nullptr;
   };
 
-  template<typename T = Section, typename... Args>
-  T LoadSection(uint64_t section_offset, Args&&... args) {
-    static_assert(std::is_base_of<Section, T>::value, "T must be derived from Section");
-    SectionLayout::Header header = Read<SectionLayout::Header>(section_offset);
-    return T(section_offset, ByteOrder::Unpack(header.size),
-             ByteOrder::Unpack(header.next_offset), std::forward<Args>(args)...);
-  }
-  void SaveSection(Section section);
-
-  std::unique_ptr<Entry> LoadEntry(uint64_t entry_offset, char* name_buf = nullptr);
-
  private:
-  template<typename T>
+  template <typename T>
   T ReadIntegral(std::true_type, uint64_t offset) {
     T value = 0;
     Read(offset, reinterpret_cast<char*>(&value), sizeof value);
     return ByteOrder::Unpack(value);
   }
-  template<typename T>
+  template <typename T>
   T ReadIntegral(std::false_type, uint64_t offset) {
     T value;
     static_assert(std::is_trivially_copyable<T>::value,
@@ -99,12 +84,12 @@ class ReaderWriter {
     Read(offset, reinterpret_cast<char*>(&value), sizeof value);
     return value;
   }
-  template<typename T>
+  template <typename T>
   void WriteIntegral(std::true_type, T value, uint64_t offset) {
     value = ByteOrder::Pack(value);
     Write(reinterpret_cast<const char*>(&value), sizeof value, offset);
   }
-  template<typename T>
+  template <typename T>
   void WriteIntegral(std::false_type, const T& value, uint64_t offset) {
     static_assert(std::is_trivially_copyable<T>::value,
                   "T must be a trivially copyable type");

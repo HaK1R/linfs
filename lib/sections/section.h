@@ -1,20 +1,20 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
-#include "fs/error_code.h"
 #include "lib/layout/section_layout.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
 namespace linfs {
 
-class ReaderWriter;
-
 class Section {
  public:
-  Section() = delete;
+  static Section Load(uint64_t section_offset, ReaderWriter* reader);
+  static Section Create(uint64_t section_offset, uint64_t section_size,
+                        ReaderWriter* writer);
+
   Section(uint64_t base_offset, uint64_t size, uint64_t next_offset)
       : base_offset_(base_offset), size_(size), next_offset_(next_offset) {}
 
@@ -25,11 +25,6 @@ class Section {
   uint64_t data_offset() const { return base_offset() + sizeof(SectionLayout::Header); }
   uint64_t data_size() const { return size() - sizeof(SectionLayout::Header); }
 
- protected:
-  // TODO? use methods instead of entire classes
-  friend class DirectoryEntry;
-  friend class FileEntry;
-  friend class NoneEntry;
   void SetSize(uint64_t size, ReaderWriter* writer);
   void SetNext(uint64_t next_offset, ReaderWriter* writer);
 

@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "lib/layout/entry_layout.h"
+#include "lib/sections/section_directory.h"
 #include "lib/utils/format_exception.h"
 
 namespace fs {
@@ -14,28 +15,28 @@ std::unique_ptr<DirectoryEntry> DirectoryEntry::Create(uint64_t entry_offset,
                                                        ReaderWriter* writer,
                                                        const char* name) {
   writer->Write<EntryLayout::DirectoryHeader>(EntryLayout::DirectoryHeader(name), entry_offset);
-  ClearEntries(entry_offset + sizeof(EntryLayout::DirectoryHeader), entry_offset + entry_size,
-               writer);
+  ClearEntries(entry_offset + sizeof(EntryLayout::DirectoryHeader),
+               entry_offset + entry_size, writer);
   return std::make_unique<DirectoryEntry>(entry_offset);
 }
 
-void DirectoryEntry::AddEntry(const Entry* entry,
-                              ReaderWriter* reader_writer,
+void DirectoryEntry::AddEntry(const Entry* entry, ReaderWriter* reader_writer,
                               SectionAllocator* allocator) {
-  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
+  SectionDirectory sec_dir = Section::Load(section_offset(), reader_writer);
 
   bool success = sec_dir.AddEntry(entry->base_offset(), reader_writer,
                                   sizeof(EntryLayout::DirectoryHeader));
   while (!success && sec_dir.next_offset()) {
-    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = Section::Load(sec_dir.next_offset(), reader_writer);
     success = sec_dir.AddEntry(entry->base_offset(), reader_writer);
   }
   if (success)
     return;
 
-  SectionDirectory next_sec_dir = allocator->AllocateSection<SectionDirectory>(1, reader_writer);
+  SectionDirectory next_sec_dir = allocator->AllocateSection(1, reader_writer);
   try {
-    ClearEntries(next_sec_dir.data_offset(), next_sec_dir.data_offset() + next_sec_dir.data_size(),
+    ClearEntries(next_sec_dir.data_offset(),
+                 next_sec_dir.data_offset() + next_sec_dir.data_size(),
                  reader_writer);
     success = next_sec_dir.AddEntry(entry->base_offset(), reader_writer);
     assert(success && "no space in the just allocated section");
@@ -49,15 +50,14 @@ void DirectoryEntry::AddEntry(const Entry* entry,
   }
 }
 
-bool DirectoryEntry::RemoveEntry(const Entry* entry,
-                                 ReaderWriter* reader_writer,
+bool DirectoryEntry::RemoveEntry(const Entry* entry, ReaderWriter* reader_writer,
                                  SectionAllocator*) {
-  SectionDirectory sec_dir = reader_writer->LoadSection<SectionDirectory>(section_offset());
+  SectionDirectory sec_dir = Section::Load(section_offset(), reader_writer);
 
   bool success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer,
                                      sizeof(EntryLayout::DirectoryHeader));
   while (!success && sec_dir.next_offset()) {
-    sec_dir = reader_writer->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = Section::Load(sec_dir.next_offset(), reader_writer);
     success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer);
   }
 
@@ -65,11 +65,11 @@ bool DirectoryEntry::RemoveEntry(const Entry* entry,
 }
 
 bool DirectoryEntry::HasEntries(ReaderWriter* reader) {
-  SectionDirectory sec_dir = reader->LoadSection<SectionDirectory>(section_offset());
+  SectionDirectory sec_dir = Section::Load(section_offset(), reader);
 
   bool has_entries = sec_dir.HasEntries(reader, sizeof(EntryLayout::DirectoryHeader));
   while (!has_entries && sec_dir.next_offset()) {
-    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = Section::Load(sec_dir.next_offset(), reader);
     has_entries = sec_dir.HasEntries(reader);
   }
 
@@ -78,9 +78,8 @@ bool DirectoryEntry::HasEntries(ReaderWriter* reader) {
 
 std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
                                                        ReaderWriter* reader) {
-  SectionDirectory sec_dir = reader->LoadSection<SectionDirectory>(section_offset());
-  SectionDirectory::Iterator it =
-      sec_dir.EntriesBegin(reader, sizeof(EntryLayout::DirectoryHeader));
+  SectionDirectory sec_dir = Section::Load(section_offset(), reader);
+  SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader, sizeof(EntryLayout::DirectoryHeader));
 
   while (1) {
     for (; it != sec_dir.EntriesEnd(); ++it) {
@@ -88,7 +87,7 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
         continue;
 
       char it_name[kNameMax + 1];
-      std::unique_ptr<Entry> it_entry = reader->LoadEntry(*it, it_name);
+      std::unique_ptr<Entry> it_entry = Entry::Load(*it, reader, it_name);
       if (strcmp(entry_name, it_name) == 0)
         return it_entry;
     }
@@ -96,29 +95,15 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
     if (!sec_dir.next_offset())
       return nullptr;
 
-    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = Section::Load(sec_dir.next_offset(), reader);
     it = sec_dir.EntriesBegin(reader);
   }
-}
-
-SectionDirectory DirectoryEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader) {
-  SectionDirectory sec_dir = reader->LoadSection<SectionDirectory>(section_offset());
-  cursor += sizeof(EntryLayout::DirectoryHeader);
-  while (cursor >= sec_dir.data_size() && sec_dir.next_offset()) {
-    cursor -= sec_dir.data_size();
-    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
-  }
-
-  if (cursor > sec_dir.data_size())
-    throw FormatException();
-
-  return sec_dir;
 }
 
 uint64_t DirectoryEntry::GetNextEntryName(uint64_t cursor, ReaderWriter* reader,
                                           char* next_buf) {
   uint64_t start_position = cursor;
-  SectionDirectory sec_dir = CursorToSection(start_position, reader);
+  SectionDirectory sec_dir = CursorToSection(start_position, reader, sizeof(EntryLayout::DirectoryHeader));
   if (start_position % sizeof(SectionDirectory::Iterator::value_type) != 0)
     throw FormatException();  // cursor is not aligned
 
@@ -128,15 +113,16 @@ uint64_t DirectoryEntry::GetNextEntryName(uint64_t cursor, ReaderWriter* reader,
       if (*it == 0)
         continue;
 
-      reader->LoadEntry(*it, next_buf);
-      return cursor + ((++it).position() - (sec_dir.data_offset() + start_position));
+      Entry::Load(*it++, reader, next_buf);
+      uint64_t begin_position = sec_dir.data_offset() + start_position;
+      return cursor + it.position() - begin_position;
     }
 
     if (!sec_dir.next_offset())
       return 0;
 
     cursor += sec_dir.data_size() - start_position;
-    sec_dir = reader->LoadSection<SectionDirectory>(sec_dir.next_offset());
+    sec_dir = Section::Load(sec_dir.next_offset(), reader);
     start_position = 0;
   }
 }

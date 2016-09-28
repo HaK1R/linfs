@@ -18,10 +18,10 @@ std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer) {
   assert(HasSections() && "there are no sections in NoneEntry");
 
-  Section head = reader_writer->LoadSection(head_offset());
+  Section head = Section::Load(head_offset(), reader_writer);
   if (head.size() > max_size) {
-    Section result(head.base_offset() + head.size() - max_size, max_size, 0);
-    reader_writer->SaveSection(result);
+    Section result = Section::Create(head.base_offset() + head.size() - max_size,
+                                     max_size, reader_writer);
     head.SetSize(head.size() - max_size, reader_writer);
     return result;
   }
@@ -34,7 +34,7 @@ Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer) {
 void NoneEntry::PutSection(Section section, ReaderWriter* reader_writer) {
   Section last = section;
   while (last.next_offset() != 0)
-    last = reader_writer->LoadSection(last.next_offset());
+    last = Section::Load(last.next_offset(), reader_writer);
   last.SetNext(head_offset(), reader_writer);
   SetHead(section.base_offset(), reader_writer);
 }

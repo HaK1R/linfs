@@ -1,11 +1,24 @@
 #include "lib/sections/section.h"
 
 #include "lib/layout/section_layout.h"
-#include "lib/reader_writer.h"
+#include "lib/utils/byte_order.h"
 
 namespace fs {
 
 namespace linfs {
+
+Section Section::Load(uint64_t section_offset, ReaderWriter* reader) {
+  SectionLayout::Header header = reader->Read<SectionLayout::Header>(section_offset);
+  return Section(section_offset, ByteOrder::Unpack(header.size),
+                 ByteOrder::Unpack(header.next_offset));
+}
+
+Section Section::Create(uint64_t section_offset, uint64_t section_size,
+                        ReaderWriter* writer) {
+  SectionLayout::Header header = {ByteOrder::Pack(section_size), 0};
+  writer->Write<SectionLayout::Header>(header, section_offset);
+  return Section(section_offset, section_size, 0);
+}
 
 void Section::SetSize(uint64_t size, ReaderWriter* writer) {
   writer->Write<uint64_t>(size, base_offset() + offsetof(SectionLayout::Header, size));

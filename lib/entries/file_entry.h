@@ -5,11 +5,9 @@
 #include <cstdint>
 #include <memory>
 
-#include "fs/error_code.h"
 #include "lib/entries/entry.h"
-#include "lib/reader_writer.h"
-#include "lib/sections/section_file.h"
 #include "lib/section_allocator.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
@@ -33,7 +31,6 @@ class FileEntry : public Entry {
                ReaderWriter* reader_writer, SectionAllocator* allocator);
 
  private:
-  SectionFile CursorToSection(uint64_t& cursor, ReaderWriter* reader);
   void SetSize(uint64_t size, ReaderWriter* writer);
 
   std::atomic<uint64_t> size_;

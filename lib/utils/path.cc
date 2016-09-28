@@ -20,7 +20,7 @@ Path Path::Normalize(const char* path_cstr, ErrorCode& error_code) {
           normalized.push_back(*pch);
         break;
       default:
-        if ((uintptr_t)pch - (uintptr_t)name_start >= kNameMax) {
+        if (uintptr_t(pch) - uintptr_t(name_start) >= kNameMax) {
           error_code = ErrorCode::kErrorNameTooLong;
           return Path();
         }
@@ -39,7 +39,6 @@ Path Path::Normalize(const char* path_cstr, ErrorCode& error_code) {
 }
 
 Path::Name Path::FirstName() const {
-  // TODO? std::size_t
   size_t it = data_.find('/');
   if (it == std::string::npos)
     return data_;

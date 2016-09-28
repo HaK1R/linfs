@@ -1,13 +1,13 @@
 #pragma once
 
-#include <cstddef>
+#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 
-#include "fs/error_code.h"
 #include "lib/entries/entry.h"
-#include "lib/reader_writer.h"
 #include "lib/sections/section.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
@@ -33,7 +33,7 @@ class NoneEntry : public Entry {
  private:
   void SetHead(uint64_t head_offset, ReaderWriter* writer);
 
-  uint64_t head_offset_;
+  std::atomic<uint64_t> head_offset_;
 };
 
 }  // namespace linfs

@@ -2,9 +2,8 @@
 
 #include <cstdint>
 
-#include "fs/error_code.h"
-#include "lib/reader_writer.h"
 #include "lib/sections/section.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
@@ -14,8 +13,7 @@ class SectionDirectory : public Section {
  public:
   typedef ReaderWriter::ReadIterator<uint64_t> Iterator;
 
-  SectionDirectory() = delete;
-  using Section::Section;
+  SectionDirectory(const Section& base) : Section(base) {}
 
   Iterator EntriesBegin(ReaderWriter* reader, uint64_t start_position = 0) {
     return Iterator(data_offset() + start_position, reader);

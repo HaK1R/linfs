@@ -1,13 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
-#include "fs/error_code.h"
 #include "lib/entries/entry.h"
-#include "lib/reader_writer.h"
-#include "lib/sections/section.h"
-#include "lib/sections/section_directory.h"
 #include "lib/section_allocator.h"
+#include "lib/utils/reader_writer.h"
 
 namespace fs {
 
@@ -24,16 +22,13 @@ class DirectoryEntry : public Entry {
   ~DirectoryEntry() override = default;
 
   void AddEntry(const Entry* entry, ReaderWriter* reader_writer, SectionAllocator* allocator);
-  bool RemoveEntry(const Entry* entry,
-                   ReaderWriter* reader_writer,
+  bool RemoveEntry(const Entry* entry, ReaderWriter* reader_writer,
                    SectionAllocator* allocator);
   bool HasEntries(ReaderWriter* reader);
-  std::unique_ptr<Entry> FindEntryByName(const char* entry_name,
-                                         ReaderWriter* reader);
+  std::unique_ptr<Entry> FindEntryByName(const char* entry_name, ReaderWriter* reader);
   uint64_t GetNextEntryName(uint64_t cursor, ReaderWriter* reader, char* next_buf);
 
  private:
-  SectionDirectory CursorToSection(uint64_t& cursor, ReaderWriter* reader);
   static void ClearEntries(uint64_t entries_offset, uint64_t entries_end, ReaderWriter* writer);
 };
 
