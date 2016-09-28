@@ -3,12 +3,12 @@ LDFLAGS += -shared
 
 # Define SYSTEM_ORDER.  Possible variables are: LittleEndian, BigEndian.
 # My computer has little endian architecture
-CPPFLAGS += "-DSYSTEM_ORDER=LittleEndian"
+CPPFLAGS += -DSYSTEM_ORDER=LittleEndian
 
 # Define DEVICE_ORDER.  Possible variables are: LittleEndian, BigEndian.
 # We use little endian by default because it's the most popular architecture in the world.
 # !!! Don't modify it unless you are sure what you are doing !!!
-CPPFLAGS += "-DDEVICE_ORDER=LittleEndian"
+CPPFLAGS += -DDEVICE_ORDER=LittleEndian
 
 SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc reader_writer.cc section_allocator.cc
 SRCS += $(addprefix entries/,directory_entry.cc file_entry.cc none_entry.cc)
