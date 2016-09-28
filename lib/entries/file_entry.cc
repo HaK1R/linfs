@@ -23,7 +23,7 @@ SectionFile FileEntry::CursorToSection(uint64_t& cursor, ReaderWriter* reader) {
     sec_file = reader->LoadSection<SectionFile>(sec_file.next_offset());
   }
 
-  if (cursor >= sec_file.data_size())
+  if (cursor > sec_file.data_size())
     throw FormatException();  // file size is smaller than expected
 
   return sec_file;
