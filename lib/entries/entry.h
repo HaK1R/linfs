@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "lib/layout/section_layout.h"
+#include "lib/utils/shared_mutex.h"  // for std::shared_lock, SharedMutex
 
 namespace fs {
 
@@ -21,16 +22,26 @@ class Entry {
 
   Type type() const { return type_; }
   uint64_t base_offset() const { return base_offset_; }
-  uint64_t section_offset() const { return base_offset() - sizeof(SectionLayout::Header); }
+  uint64_t section_offset() const {
+    return base_offset() - sizeof(SectionLayout::Header);
+  }
 
-  std::unique_lock<std::mutex> Lock() { return std::unique_lock<std::mutex>(mutex_); }
+  // Acquires exclusive ownership for read-write access.
+  std::unique_lock<SharedMutex> Lock() {
+    return std::unique_lock<SharedMutex>(mutex_);
+  }
+
+  // Acquires shared ownership for read-only access.
+  std::shared_lock<SharedMutex> LockShared() {
+    return std::shared_lock<SharedMutex>(mutex_);
+  }
 
  protected:
   Entry(Type type, uint64_t base_offset)
       : type_(type), base_offset_(base_offset) {}
 
   // Thread safety is guaranteed by this guy.
-  std::mutex mutex_;
+  SharedMutex mutex_;
 
  private:
   const Type type_;

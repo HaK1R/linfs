@@ -14,7 +14,7 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
   // SectionAllocator owns and entirely depends on the NoneEntry and just
   // expands its functionality. Therefore we can use only one mutex for both of
   // them.
-  std::unique_lock<std::mutex> lock = none_entry_->Lock();
+  std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
   if (none_entry_->HasSections())
     return none_entry_->GetSection(size, reader_writer);
@@ -30,7 +30,7 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
 
 void SectionAllocator::ReleaseSection(const Section& section,
                                       ReaderWriter* reader_writer) noexcept {
-  std::unique_lock<std::mutex> lock = none_entry_->Lock();
+  std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
   try {

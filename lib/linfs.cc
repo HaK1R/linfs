@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <exception>
-#include <mutex>
 #include <utility>
 
 #include "lib/entries/file_entry.h"
@@ -56,7 +55,7 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
   std::shared_ptr<DirectoryEntry> dir = root_entry_;
   while (!path.Empty()) {
     // Lock the directory until the shared entry is constructed.
-    std::unique_lock<std::mutex> lock = dir->Lock();
+    std::shared_lock<SharedMutex> lock = dir->LockShared();
 
     std::unique_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), accessor_.get());
     if (entry == nullptr) {
@@ -141,7 +140,7 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    std::unique_lock<std::mutex> lock = cwd->Lock();
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
 
     std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (!file) {
@@ -184,7 +183,7 @@ ErrorCode LinFS::RemoveFile(const char* path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    std::unique_lock<std::mutex> lock = cwd->Lock();
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
 
     std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
@@ -216,7 +215,7 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    std::unique_lock<std::mutex> lock = cwd->Lock();
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
 
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
@@ -247,7 +246,7 @@ ErrorCode LinFS::RemoveDirectory(const char* path_cstr) {
     if (error_code != ErrorCode::kSuccess)
       return error_code;
 
-    std::unique_lock<std::mutex> lock = cwd->Lock();
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
 
     std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr)
@@ -285,7 +284,7 @@ const char* LinFS::ListDirectory(const char* path_cstr, const char* prev,
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    std::unique_lock<std::mutex> lock = cwd->Lock();
+    std::shared_lock<SharedMutex> lock = cwd->LockShared();
     return cwd->GetNextEntryName(prev, accessor_.get(), next_buf);
   }
   catch (...) {
