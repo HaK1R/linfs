@@ -131,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(remove_many_dirs_in_dir, LoadedFSFixture) {
   for (int i = 0; i < kMany; ++i)
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home/" + to_s(i)));
 
-  for (int i = 0; i < kMany; ++i)
+  for (int i = kMany - 1; i >= 0; --i)
     BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory("home/" + to_s(i)));
 }
 
@@ -329,24 +329,30 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(it == end);
 }
 
-BOOST_FIXTURE_TEST_CASE(list_dir_if_invalid_cookie, LoadedFSFixture) {
-  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
-  uint64_t cookie;
+BOOST_FIXTURE_TEST_CASE(list_dir_ignores_invalid_cookie, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("2"));
   std::string buf(kNameMax, '\0');
-  cookie = fs->ListDirectory("/", 0, &buf[0], &ec);
+  uint64_t cookie = fs->ListDirectory("/", 0, &buf[0], &ec);
+  BOOST_REQUIRE(cookie != 0);
   BOOST_REQUIRE(ErrorCode::kSuccess == ec);
+  BOOST_REQUIRE(buf.c_str() == to_s(1));
 
   BOOST_CHECK(0 == fs->ListDirectory("/", cookie + 1, &buf[0], &ec));
-  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
 
-  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 100 + 1, &buf[0], &ec));
-  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 100, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
 
   BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 10000 + 1, &buf[0], &ec));
-  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
 
-  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 1000000 + 1, &buf[0], &ec));
-  BOOST_CHECK(ErrorCode::kErrorFormat == ec);
+  BOOST_CHECK(0 == fs->ListDirectory("/", cookie * 1000000, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+
+  BOOST_CHECK(0 != fs->ListDirectory("/", cookie, &buf[0], &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+  BOOST_CHECK(buf.c_str() == to_s(2));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

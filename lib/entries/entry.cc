@@ -40,7 +40,7 @@ std::unique_ptr<Entry> Entry::Load(uint64_t entry_offset, ReaderWriter* reader,
 }
 
 Section Entry::CursorToSection(uint64_t& cursor, ReaderWriter* reader,
-                               uint64_t start_position) {
+                               uint64_t start_position, bool check_cursor) {
   Section section = Section::Load(section_offset(), reader);
   cursor += start_position;
   while (cursor >= section.data_size() && section.next_offset()) {
@@ -48,7 +48,7 @@ Section Entry::CursorToSection(uint64_t& cursor, ReaderWriter* reader,
     section = Section::Load(section.next_offset(), reader);
   }
 
-  if (cursor > section.data_size())
+  if (check_cursor && cursor > section.data_size())
     throw FormatException();  // cursor is greater than entry's size
 
   return section;

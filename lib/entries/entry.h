@@ -53,7 +53,7 @@ class Entry {
       : type_(type), base_offset_(base_offset) {}
 
   Section CursorToSection(uint64_t& cursor, ReaderWriter* reader,
-                          uint64_t start_position);
+                          uint64_t start_position, bool check_cursor = true);
 
   // Thread safety is guaranteed by this guy.
   SharedMutex mutex_;

@@ -4,7 +4,6 @@
 
 #include "lib/layout/entry_layout.h"
 #include "lib/sections/section_directory.h"
-#include "lib/utils/format_exception.h"
 
 namespace fs {
 
@@ -51,14 +50,31 @@ void DirectoryEntry::AddEntry(const Entry* entry, ReaderWriter* reader_writer,
 }
 
 bool DirectoryEntry::RemoveEntry(const Entry* entry, ReaderWriter* reader_writer,
-                                 SectionAllocator*) {
+                                 SectionAllocator* allocator) {
   SectionDirectory sec_dir = Section::Load(section_offset(), reader_writer);
+  SectionDirectory last_used_sec_dir = sec_dir;  // It's always used.
 
   bool success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer,
                                      sizeof(EntryLayout::DirectoryHeader));
   while (!success && sec_dir.next_offset()) {
     sec_dir = Section::Load(sec_dir.next_offset(), reader_writer);
     success = sec_dir.RemoveEntry(entry->base_offset(), reader_writer);
+
+    // Track the last non-empty section and release unused ones when possible.
+    try {
+      if (sec_dir.HasEntries(reader_writer))
+        last_used_sec_dir = sec_dir;
+      else if (!sec_dir.next_offset()) {
+        assert(success && "the last section was empty");
+        Section unused = Section::Load(last_used_sec_dir.next_offset(), reader_writer);
+        last_used_sec_dir.SetNext(0, reader_writer);
+        allocator->ReleaseSection(unused, reader_writer);
+      }
+    }
+    catch (...) {
+      /* Oh well... it doesn't matter. Let's just say sec_dir has entries. */
+      last_used_sec_dir = sec_dir;
+    }
   }
 
   return success;
@@ -103,9 +119,14 @@ std::unique_ptr<Entry> DirectoryEntry::FindEntryByName(const char* entry_name,
 uint64_t DirectoryEntry::GetNextEntryName(uint64_t cursor, ReaderWriter* reader,
                                           char* next_buf) {
   uint64_t start_position = cursor;
-  SectionDirectory sec_dir = CursorToSection(start_position, reader, sizeof(EntryLayout::DirectoryHeader));
+  SectionDirectory sec_dir =
+      CursorToSection(start_position, reader, sizeof(EntryLayout::DirectoryHeader),
+                      false);  // check_cursor -- We will check it by ourselves.
+  if (start_position > sec_dir.data_size())
+    return 0;  // Some sections were probably released.  Ignore it.
+
   if (start_position % sizeof(SectionDirectory::Iterator::value_type) != 0)
-    throw FormatException();  // cursor is not aligned
+    return 0;  // Invalid cursor.  Ignore it.
 
   while (1) {
     for (SectionDirectory::Iterator it = sec_dir.EntriesBegin(reader, start_position);
