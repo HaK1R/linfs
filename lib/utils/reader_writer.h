@@ -10,6 +10,7 @@
 #include <type_traits>
 
 #include "lib/utils/byte_order.h"
+#include "lib/utils/macros.h"
 
 namespace fs {
 
@@ -79,8 +80,7 @@ class ReaderWriter {
   template <typename T>
   T ReadIntegral(std::false_type, uint64_t offset) {
     T value;
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "T must be a trivially copyable type");
+    STATIC_ASSERT_TRIVIALLY_COPYABLE(T);
     Read(offset, reinterpret_cast<char*>(&value), sizeof value);
     return value;
   }
@@ -91,8 +91,7 @@ class ReaderWriter {
   }
   template <typename T>
   void WriteIntegral(std::false_type, const T& value, uint64_t offset) {
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "T must be a trivially copyable type");
+    STATIC_ASSERT_TRIVIALLY_COPYABLE(T);
     Write(reinterpret_cast<const char*>(&value), sizeof value, offset);
   }
 

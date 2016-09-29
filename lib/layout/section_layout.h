@@ -1,7 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
+
+#include "lib/utils/macros.h"
 
 namespace fs {
 
@@ -13,14 +14,11 @@ class SectionLayout {
     uint64_t size;         // size of this section
     uint64_t next_offset;  // offset of the next section
   };
-  static_assert(std::is_trivially_copyable<Header>::value,
-                "SectionLayout::Header isn't a trivially copyable type");
-  static_assert(std::is_standard_layout<Header>::value,
-                "SectionLayout::Header isn't a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 
   // The section's body looks like:
   // struct Body {
-  //  [EntryLayout::Header header;]? -- optional
+  //  [EntryLayout::Header header;] -- optional
   //   EntryLayout::Body body;
   // };
 };

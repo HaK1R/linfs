@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
 
 #include "fs/error_code.h"
 #include "fs/filesystem_interface.h"
 #include "lib/layout/entry_layout.h"
 #include "lib/layout/section_layout.h"
+#include "lib/utils/macros.h"
 #include "lib/utils/reader_writer.h"
 
 namespace fs {
@@ -36,10 +36,7 @@ class DeviceLayout {
   };
   static_assert(sizeof(Header::cluster_size_log2) == sizeof(FilesystemInterface::ClusterSize),
                 "DeviceLayout::Header requires ClusterSize be of size uint8_t");
-  static_assert(std::is_trivially_copyable<Header>::value,
-                "DeviceLayout::Header isn't a trivially copyable type");
-  static_assert(std::is_standard_layout<Header>::value,
-                "DeviceLayout::Header isn't a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 
   // The device's body looks as follows, and is used only to calculate offsets:
   struct __attribute__((packed)) Body {
@@ -53,8 +50,7 @@ class DeviceLayout {
       EntryLayout::DirectoryHeader entry{""};
     } root;
   };
-  static_assert(std::is_standard_layout<Body>::value,
-                "DeviceLayout::Body must be a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT(Body);
 
   static Header ParseHeader(ReaderWriter* reader, ErrorCode& error_code);
   static void WriteHeader(Header header, ReaderWriter* writer);

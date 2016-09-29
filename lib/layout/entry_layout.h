@@ -2,10 +2,10 @@
 
 #include <cstdint>
 #include <cstring>
-#include <type_traits>
 
 #include "fs/limits.h"
 #include "lib/entries/entry.h"
+#include "lib/utils/macros.h"
 
 namespace fs {
 
@@ -29,10 +29,7 @@ class EntryLayout {
     _Header common{Entry::Type::kNone};
     uint64_t head_offset;        // points to the head of unused sections list
   };
-  static_assert(std::is_trivially_copyable<NoneHeader>::value,
-                "EntryLayout::NoneHeader isn't a trivially copyable type");
-  static_assert(std::is_standard_layout<NoneHeader>::value,
-                "EntryLayout::NoneHeader isn't a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(NoneHeader);
 
   struct __attribute__((packed)) DirectoryHeader {
     DirectoryHeader(const char* _name) {
@@ -42,10 +39,7 @@ class EntryLayout {
     _Header common{Entry::Type::kDirectory};
     char name[kNameMax];         // directory name
   };
-  static_assert(std::is_trivially_copyable<DirectoryHeader>::value,
-                "EntryLayout::DirectoryHeader isn't a trivially copyable type");
-  static_assert(std::is_standard_layout<DirectoryHeader>::value,
-                "EntryLayout::DirectoryHeader isn't a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(DirectoryHeader);
 
   struct __attribute__((packed)) FileHeader {
     FileHeader(uint64_t _size, const char* _name) : size(_size) {
@@ -56,10 +50,7 @@ class EntryLayout {
     uint64_t size;               // file size
     char name[kNameMax];         // file name
   };
-  static_assert(std::is_trivially_copyable<FileHeader>::value,
-                "EntryLayout::FileHeader isn't a trivially copyable type");
-  static_assert(std::is_standard_layout<FileHeader>::value,
-                "EntryLayout::FileHeader isn't a standard-layout type");
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(FileHeader);
 
   union __attribute__((packed)) HeaderUnion {
     // Make compiler happy with the default constructor
@@ -70,8 +61,7 @@ class EntryLayout {
     DirectoryHeader directory;
     FileHeader file;
   };
-  static_assert(std::is_trivially_copyable<FileHeader>::value,
-                "EntryLayout::HeaderUnion isn't a trivially copyable type");
+  STATIC_ASSERT_TRIVIALLY_COPYABLE(HeaderUnion);
 
   // The directory's body looks like:
   // struct BodyDirectory {
