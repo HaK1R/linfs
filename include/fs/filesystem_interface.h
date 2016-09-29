@@ -31,13 +31,7 @@ class FilesystemInterface {
 
   // 2. Load a filesystem
   // ErrorCode error_code = fs->Format("/path/to/device", IFileSystem::ClusterSize::k1KB);
-  // if (error_code == ErrorCode::kSuccess)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorDeviceUnknown)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorInputOutput)
-  //   ...
-  // else
+  // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Not thread safe
@@ -46,13 +40,7 @@ class FilesystemInterface {
   // 3. Format a new device
   //
   // ErrorCode error_code = fs->Format("/path/to/device", IFileSystem::ClusterSize::k1KB);
-  // if (error_code == ErrorCode::kSuccess)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorDeviceUnknown)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorInputOutput)
-  //   ...
-  // else
+  // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Not thread safe
@@ -80,9 +68,7 @@ class FilesystemInterface {
   // 2. Remove a file
   //
   // ErrorCode error_code = fs->RemoveFile("/root/.profile");
-  // if (error_code == ErrorCode::kSuccess)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorNotFound)
+  // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Thread safe
@@ -93,9 +79,7 @@ class FilesystemInterface {
   // 1. Create a directory
   //
   // ErrorCode error_code = fs->CreateDirectory("/root/cache");
-  // if (error_code == ErrorCode::kSuccess)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorExist)
+  // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Thread safe
@@ -104,13 +88,7 @@ class FilesystemInterface {
   // 2. Remove a directory
   //
   // ErrorCode error_code = fs->RemoveDirectory("/root/cache");
-  // if (error_code == ErrorCode::kSuccess)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorNotFound)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorNotDirectory)
-  //   ...
-  // else if (error_code == ErrorCode::kErrorDirectoryNotEmpty)
+  // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Thread safe
@@ -122,7 +100,7 @@ class FilesystemInterface {
   // uint64_t cookie = 0;
   // char entry[kNameMax + 1];
   // while (1) {
-  //   cookie = fs->ListDirectory("/root", cookie, entry, error_code);
+  //   cookie = fs->ListDirectory("/root", cookie, entry, &error_code);
   //   if (error_code != ErrorCode::kSuccess)
   //     return error_code;
   //   else if (cookie == 0)
@@ -136,13 +114,6 @@ class FilesystemInterface {
                                  ErrorCode* error_code) = 0;
 
   // 3.1. Iterate over a directory contents using DirectoryIterator
-  //
-  // ErrorCode error_code;
-  // for (auto entry : fs->DirectoryRange("/tmp", error_code)) {
-  //   if (error_code != ErrorCode::kSuccess)
-  //     return error_code;
-  //   std::cout << entry << std::endl;
-  // }
   //
   // ErrorCode error_code;
   // for (DirectoryIterator it = fs->ListDirectory("/tmp", error_code);
@@ -182,6 +153,7 @@ class FilesystemInterface {
     char name_storage_[kNameMax + 1];
     ErrorCode* error_code_;
   };
+
   DirectoryIterator ListDirectory(const char* path, ErrorCode& error_code) {
     return DirectoryIterator(this, path, error_code);
   }
