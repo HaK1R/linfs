@@ -65,7 +65,8 @@ bool DirectoryEntry::RemoveEntry(const Entry* entry, ReaderWriter* reader_writer
       if (sec_dir.HasEntries(reader_writer))
         last_used_sec_dir = sec_dir;
       else if (!sec_dir.next_offset()) {
-        assert(success && "the last section was empty");
+        // Note that |success| is usually true but can also be
+        // false if at the last time there was an exception.
         Section unused = Section::Load(last_used_sec_dir.next_offset(), reader_writer);
         last_used_sec_dir.SetNext(0, reader_writer);
         allocator->ReleaseSection(unused, reader_writer);
