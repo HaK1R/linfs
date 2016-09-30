@@ -1,5 +1,6 @@
 #include "lib/linfs.h"
 
+#include <cassert>
 #include <cstddef>
 #include <exception>
 #include <memory>
@@ -147,6 +148,8 @@ ErrorCode LinFS::Format(const char* device_path, ClusterSize cluster_size) const
 }
 
 FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode* error_code) {
+  assert(path_cstr != nullptr && error_code != nullptr);
+
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
@@ -198,9 +201,10 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
 }
 
 ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
-  ErrorCode error_code;
+  assert(path_cstr != nullptr);
 
   try {
+    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
@@ -231,6 +235,8 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
 
 uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
                               char* next_buf, ErrorCode* error_code) {
+  assert(path_cstr != nullptr && next_buf != nullptr && error_code != nullptr);
+
   try {
     Path path = Path::Normalize(path_cstr, *error_code);
     if (*error_code != ErrorCode::kSuccess)
@@ -250,9 +256,10 @@ uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
 }
 
 ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
-  ErrorCode error_code;
+  assert(path_cstr != nullptr && target_cstr != nullptr);
 
   try {
+    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
@@ -287,9 +294,10 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
 }
 
 ErrorCode LinFS::Remove(const char* path_cstr) {
-  ErrorCode error_code;
+  assert(path_cstr != nullptr);
 
   try {
+    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;

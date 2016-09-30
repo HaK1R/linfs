@@ -10,6 +10,11 @@ CPPFLAGS += -DSYSTEM_ORDER=LittleEndian
 # !!! Don't modify it unless you are sure what you are doing !!!
 CPPFLAGS += -DDEVICE_ORDER=LittleEndian
 
+# Build mode.  Default mode is Debug, which performs additional checks and logs
+# unrecoverable errors to |std::cerr| (unsafe).  Of course you can turn it off
+# and build the Release version by uncommenting the following line:
+#CPPFLAGS += -DNDEBUG
+
 SRCS = entry_cache.cc file_impl.cc linfs.cc linfs_factory.cc section_allocator.cc
 SRCS += $(addprefix entries/,directory_entry.cc entry.cc file_entry.cc none_entry.cc symlink_entry.cc)
 SRCS += $(addprefix layout/,device_layout.cc)

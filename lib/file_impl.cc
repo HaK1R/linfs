@@ -1,6 +1,7 @@
 #include "lib/file_impl.h"
 
 #include <algorithm>
+#include <cassert>
 
 #include "lib/utils/exception_handler.h"
 
@@ -9,6 +10,8 @@ namespace fs {
 namespace linfs {
 
 size_t FileImpl::Read(char* buf, size_t buf_size, ErrorCode* error_code) {
+  assert((buf != nullptr || buf_size == 0) && error_code != nullptr);
+
   uint64_t old_cursor = cursor_;
   buf_size = std::min(buf_size, file_entry_->size() - old_cursor);
 
@@ -28,6 +31,8 @@ size_t FileImpl::Read(char* buf, size_t buf_size, ErrorCode* error_code) {
 }
 
 size_t FileImpl::Write(const char* buf, size_t buf_size, ErrorCode* error_code) {
+  assert((buf != nullptr || buf_size == 0) && error_code != nullptr);
+
   uint64_t old_cursor = cursor_;
 
   size_t written;

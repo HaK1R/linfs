@@ -1,9 +1,12 @@
 #include "lib/section_allocator.h"
 
 #include <ios>
-#include <iostream>
 
 #include "lib/layout/device_layout.h"
+
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 namespace fs {
 
@@ -11,14 +14,14 @@ namespace linfs {
 
 Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_writer) {
   // SectionAllocator owns and entirely depends on the NoneEntry and just
-  // expands its functionality. Therefore we can use only one mutex for both of
+  // expands its functionality.  Therefore we can use only one mutex for both of
   // them.
   std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
   if (none_entry_->HasSections())
     return none_entry_->GetSection(size, reader_writer);
 
-  // There is nothing in NoneEntry chain. Allocate a new cluster.
+  // There is nothing in NoneEntry chain.  Allocate a new cluster.
   uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
   Section section = Section::Create(total_clusters_ * cluster_size_,
                                     required_clusters * cluster_size_, reader_writer);
@@ -39,9 +42,10 @@ void SectionAllocator::ReleaseSection(const Section& section,
       none_entry_->PutSection(section, reader_writer);
   }
   catch (...) {
-    // TODO? don't use std::cerr in shared libraries
+#ifndef NDEBUG
     std::cerr << "Leaked section at " << std::hex << section.base_offset()
               << " of size " << std::dec << section.size() << std::endl;
+#endif
   }
 }
 
@@ -52,7 +56,9 @@ void SectionAllocator::ReleaseSection(uint64_t section_offset,
     ReleaseSection(section, reader_writer);
   }
   catch (...) {
+#ifndef NDEBUG
     std::cerr << "Leaked section at " << std::hex << section_offset << std::endl;
+#endif
   }
 }
 
