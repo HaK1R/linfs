@@ -160,6 +160,10 @@ class FilesystemInterface {
 
   // x. Create a symbol link
   virtual ErrorCode CreateSymlink(const char* path, const char* target) = 0;
+
+ protected:
+  // You are not permitted to delete it directly.  Always use Release().
+  ~FilesystemInterface() = default;
 };
 
 }  // namespace fs

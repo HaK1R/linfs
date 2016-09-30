@@ -56,6 +56,10 @@ class FileInterface {
   //
   // Thread safety: Not thread safe
   virtual void Close() = 0;
+
+ protected:
+  // You are not permitted to delete it directly.  Always use Close().
+  ~FileInterface() = default;
 };
 
 }  // namespace fs
