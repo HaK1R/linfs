@@ -130,7 +130,7 @@ BOOST_FIXTURE_TEST_CASE(open_file_via_symlink_target_with_long_name_if_file_exis
 BOOST_FIXTURE_TEST_CASE(remove_one_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveFile(".profile"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove(".profile"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_many_files, LoadedFSFixture) {
@@ -138,14 +138,14 @@ BOOST_FIXTURE_TEST_CASE(remove_many_files, LoadedFSFixture) {
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(to_s(i)));
 
   for (int i = 0; i < kMany; ++i)
-    BOOST_CHECK(ErrorCode::kSuccess == RemoveFile(to_s(i)));
+    BOOST_CHECK(ErrorCode::kSuccess == Remove(to_s(i)));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_file_in_sub_dir, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("home/.profile"));
 
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveFile("home/.profile"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("home/.profile"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_many_files_in_sub_dir, LoadedFSFixture) {
@@ -154,21 +154,21 @@ BOOST_FIXTURE_TEST_CASE(remove_many_files_in_sub_dir, LoadedFSFixture) {
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("home/" + to_s(i)));
 
   for (int i = 0; i < kMany; ++i)
-    BOOST_CHECK(ErrorCode::kSuccess == RemoveFile("home/" + to_s(i)));
+    BOOST_CHECK(ErrorCode::kSuccess == Remove("home/" + to_s(i)));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_file_is_case_sensitive, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 
-  BOOST_CHECK(ErrorCode::kErrorNotFound == RemoveFile(".Profile"));
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveFile(".profile"));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove(".Profile"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove(".profile"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_file_if_already_removed, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveFile(".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove(".profile"));
 
-  BOOST_CHECK(ErrorCode::kErrorNotFound == RemoveFile(".profile"));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove(".profile"));
 }
 
 BOOST_FIXTURE_TEST_CASE(write_zero_bytes, LoadedFSFixture) {

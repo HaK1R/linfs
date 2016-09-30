@@ -22,6 +22,8 @@ class FileImpl : public FileInterface {
       : cursor_(0), file_entry_(file_entry), reader_writer_(std::move(reader_writer)),
         allocator_(allocator) {}
 
+  // File operations:
+
   // |buf| and |error_code| are always not null, otherwise UB
   size_t Read(char* buf, size_t buf_size, ErrorCode* error_code) override;
   size_t Write(const char* buf, size_t buf_size, ErrorCode* error_code) override;

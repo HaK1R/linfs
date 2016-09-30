@@ -166,7 +166,8 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
         entry = AllocateEntry<FileEntry>(path.BaseName());
         try {
           cwd->AddEntry(entry.get(), accessor_.get(), allocator_.get());
-        } catch (...) {
+        }
+        catch (...) {
           ReleaseEntry(entry);
           throw;
         }
@@ -196,38 +197,6 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
   }
 }
 
-ErrorCode LinFS::RemoveFile(const char* path_cstr) {
-  ErrorCode error_code;
-
-  try {
-    Path path = Path::Normalize(path_cstr, error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
-
-    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
-
-    std::unique_lock<SharedMutex> lock = cwd->Lock();
-
-    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
-    if (entry == nullptr)
-      return ErrorCode::kErrorNotFound;
-    if (entry->type() != Entry::Type::kFile)
-      return ErrorCode::kErrorIsDirectory;
-    if (cache_.EntryIsShared(entry.get()))
-      return ErrorCode::kErrorBusy;
-    bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
-    if (!success)
-      return ErrorCode::kErrorFormat;
-    ReleaseEntry(entry);
-    return ErrorCode::kSuccess;
-  }
-  catch (...) {
-    return ExceptionHandler::ToErrorCode(std::current_exception());
-  }
-}
-
 ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
   ErrorCode error_code;
 
@@ -248,49 +217,11 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
     std::unique_ptr<Entry> directory = AllocateEntry<DirectoryEntry>(path.BaseName());
     try {
       cwd->AddEntry(directory.get(), accessor_.get(), allocator_.get());
-    } catch (...) {
+    }
+    catch (...) {
       ReleaseEntry(directory);
       throw;
     }
-    return ErrorCode::kSuccess;
-  }
-  catch (...) {
-    return ExceptionHandler::ToErrorCode(std::current_exception());
-  }
-}
-
-ErrorCode LinFS::RemoveDirectory(const char* path_cstr) {
-  ErrorCode error_code;
-
-  try {
-    Path path = Path::Normalize(path_cstr, error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
-
-    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
-      return error_code;
-
-    std::unique_lock<SharedMutex> lock = cwd->Lock();
-
-    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
-    if (entry == nullptr)
-      return ErrorCode::kErrorNotFound;
-    if (entry->type() != Entry::Type::kDirectory)
-      return ErrorCode::kErrorNotDirectory;
-    if (cache_.EntryIsShared(entry.get()))
-      return ErrorCode::kErrorBusy;
-
-    // Safe to check without locking the entry's lock |entry->Lock()|
-    // because no one refers to (and uses) it at the moment.
-    bool has_entries = entry->As<DirectoryEntry>()->HasEntries(accessor_.get());
-    if (has_entries)
-      return ErrorCode::kErrorDirectoryNotEmpty;
-
-    bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
-    if (!success)
-      return ErrorCode::kErrorFormat;
-    ReleaseEntry(entry);
     return ErrorCode::kSuccess;
   }
   catch (...) {
@@ -343,10 +274,48 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
         path.BaseName(), target.Normalized(), allocator_.get());
     try {
       cwd->AddEntry(symlink.get(), accessor_.get(), allocator_.get());
-    } catch (...) {
+    }
+    catch (...) {
       ReleaseEntry(symlink);
       throw;
     }
+    return ErrorCode::kSuccess;
+  }
+  catch (...) {
+    return ExceptionHandler::ToErrorCode(std::current_exception());
+  }
+}
+
+ErrorCode LinFS::Remove(const char* path_cstr) {
+  ErrorCode error_code;
+
+  try {
+    Path path = Path::Normalize(path_cstr, error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
+
+    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
+    if (entry == nullptr)
+      return ErrorCode::kErrorNotFound;
+    if (cache_.EntryIsShared(entry.get()))
+      return ErrorCode::kErrorBusy;
+    if (entry->type() == Entry::Type::kDirectory) {
+      // We can use |HasEntries| without locking the entry's lock |entry->Lock()|
+      // because no one refers to (and uses) it at the moment.
+      bool has_entries = entry->As<DirectoryEntry>()->HasEntries(accessor_.get());
+      if (has_entries)
+        return ErrorCode::kErrorDirectoryNotEmpty;
+    }
+    bool success = cwd->RemoveEntry(entry.get(), accessor_.get(), allocator_.get());
+    if (!success)
+      return ErrorCode::kErrorFormat;
+    ReleaseEntry(entry);
     return ErrorCode::kSuccess;
   }
   catch (...) {

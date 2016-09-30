@@ -95,4 +95,79 @@ BOOST_FIXTURE_TEST_CASE(create_symlink_in_sub_dir, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("home/lnk", "target"));
 }
 
+BOOST_FIXTURE_TEST_CASE(remove_symlink_if_target_doesnt_exist, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_to_file_which_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+  BOOST_CHECK(ErrorCode::kErrorExists == OpenFile(".profile", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_to_file_that_was_removed, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove(".profile"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_to_dir_which_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "home"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+  BOOST_CHECK(ErrorCode::kErrorExists == CreateDirectory("home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_to_dir_that_was_removed, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("home"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_many_symlinks_to_one_target, LoadedFSFixture) {
+  for (int i = 0; i < kMany; ++i)
+    BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink(std::to_string(i), "target"));
+
+  for (int i = 0; i < kMany; ++i)
+    BOOST_CHECK(ErrorCode::kSuccess == Remove(std::to_string(i)));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_many_symlinks_to_many_targets, LoadedFSFixture) {
+  for (int i = 0; i < kMany; ++i)
+    BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink(std::to_string(i), "target" + std::to_string(i)));
+
+  for (int i = 0; i < kMany; ++i)
+    BOOST_CHECK(ErrorCode::kSuccess == Remove(std::to_string(i)));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_is_case_sensitive, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("Lnk"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_in_sub_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home/lnk", "target"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("home/lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_if_already_removed, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("lnk"));
+
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("Lnk"));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -10,6 +10,8 @@ namespace fs {
 
 class FileInterface {
  public:
+  // File operations:
+  //
   // 1. Read from a file
   //
   // ErrorCode error_code;
@@ -19,6 +21,7 @@ class FileInterface {
   //   ...
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual size_t Read(char* buf, size_t buf_size, ErrorCode* error_code) = 0;
 
   // 2. Write on a file
@@ -30,6 +33,7 @@ class FileInterface {
   //   ...
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual size_t Write(const char* buf, size_t buf_size, ErrorCode* error_code) = 0;
 
   // 3. Get and set file read/write offset
@@ -40,6 +44,9 @@ class FileInterface {
   //   ...
   //
   // Thread safety: Thread safe
+  // Error (exception) safety:
+  //   * GetCursor: No error
+  //   * SetCursor: Strong guarantee
   virtual uint64_t GetCursor() const = 0;
   virtual ErrorCode SetCursor(uint64_t cursor) = 0;
 
@@ -48,6 +55,7 @@ class FileInterface {
   // uint64_t size = file->GetSize();
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual uint64_t GetSize() const = 0;
 
   // 5. Release the associated descriptor and close a file
@@ -55,6 +63,7 @@ class FileInterface {
   // file->Close();
   //
   // Thread safety: Not thread safe
+  // Error (exception) safety: No error
   virtual void Close() = 0;
 
  protected:

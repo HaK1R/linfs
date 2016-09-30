@@ -62,19 +62,18 @@ struct LoadedFSFixture : FormattedFSFixture {
   using ScopedFile = std::unique_ptr<fs::FileInterface, FileDeleter>;
 
   LoadedFSFixture();
-  fs::ErrorCode CreateDirectory(const std::string& path);
-  fs::ErrorCode RemoveDirectory(const std::string& path);
   fs::ErrorCode OpenFile(const std::string& path, ScopedFile& out_file,
                          bool creat_excl = false);
-  fs::ErrorCode WriteFile(ScopedFile& file, const std::string& data);
   fs::ErrorCode ReadFile(ScopedFile& file, std::string& data);
+  fs::ErrorCode WriteFile(ScopedFile& file, const std::string& data);
   fs::ErrorCode CreateFile(const std::string& path,
                            const std::string& data = "");
-  fs::ErrorCode RemoveFile(const std::string& path);
-  fs::ErrorCode CreateSymlink(const std::string& path,
-                              const std::string& target);
+  fs::ErrorCode CreateDirectory(const std::string& path);
   fs::ErrorCode ListDirectory(const std::string& path,
                               std::vector<std::string>& out_content);
+  fs::ErrorCode CreateSymlink(const std::string& path,
+                              const std::string& target);
+  fs::ErrorCode Remove(const std::string& path);
 
   ScopedFile file;
 };

@@ -151,7 +151,7 @@ BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_dir_in_sub_dirs, LoadedFSF
 BOOST_FIXTURE_TEST_CASE(remove_one_dir, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
 
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_many_dirs, LoadedFSFixture) {
@@ -159,14 +159,14 @@ BOOST_FIXTURE_TEST_CASE(remove_many_dirs, LoadedFSFixture) {
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
 
   for (int i = 0; i < kMany; ++i)
-    BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory(to_s(i)));
+    BOOST_CHECK(ErrorCode::kSuccess == Remove(to_s(i)));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_dir_in_dir, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home/user"));
 
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory("home/user"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("home/user"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_many_dirs_in_dir, LoadedFSFixture) {
@@ -175,39 +175,39 @@ BOOST_FIXTURE_TEST_CASE(remove_many_dirs_in_dir, LoadedFSFixture) {
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home/" + to_s(i)));
 
   for (int i = kMany - 1; i >= 0; --i)
-    BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory("home/" + to_s(i)));
+    BOOST_CHECK(ErrorCode::kSuccess == Remove("home/" + to_s(i)));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_with_dir, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home/user"));
 
-  BOOST_CHECK(ErrorCode::kErrorDirectoryNotEmpty == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kErrorDirectoryNotEmpty == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_with_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("home/.profile"));
 
-  BOOST_CHECK(ErrorCode::kErrorDirectoryNotEmpty == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kErrorDirectoryNotEmpty == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_if_doesnt_exist, LoadedFSFixture) {
-  BOOST_CHECK(ErrorCode::kErrorNotFound == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_is_case_sensitive, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
 
-  BOOST_CHECK(ErrorCode::kErrorNotFound == RemoveDirectory("Home"));
-  BOOST_CHECK(ErrorCode::kSuccess == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("Home"));
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_if_already_removed, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("home"));
 
-  BOOST_CHECK(ErrorCode::kErrorNotFound == RemoveDirectory("home"));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("home"));
 }
 
 BOOST_FIXTURE_TEST_CASE(list_empty_dir, LoadedFSFixture) {
@@ -269,7 +269,7 @@ BOOST_FIXTURE_TEST_CASE(list_sub_dir_with_many_dirs, LoadedFSFixture) {
 
 BOOST_FIXTURE_TEST_CASE(list_dir_with_one_dir_that_was_removed, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("home"));
 
   std::vector<std::string> contents;
   BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("/", contents));
@@ -337,7 +337,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(it != end);
 
   // 2. remove directory 3
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("3"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("3"));
 
   // 3. it points to 0
   BOOST_CHECK(*it++ == to_s(0));
@@ -345,7 +345,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(it != end);
 
   // 4. remove directory 2
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("2"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("2"));
 
   // 5. it points to 1
   BOOST_CHECK(*it++ == to_s(1));
@@ -353,7 +353,7 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(it != end);
 
   // 6. remove directory 4
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("4"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("4"));
 
   // 7. it points to 4.  Surprise! It's already in the cache.
   BOOST_CHECK(*it++ == to_s(4));
@@ -361,8 +361,8 @@ BOOST_FIXTURE_TEST_CASE(list_dir_with_many_dirs_while_removing_them, LoadedFSFix
   BOOST_CHECK(it != end);
 
   // 8. remove directories 0, 1
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("0"));
-  BOOST_REQUIRE(ErrorCode::kSuccess == RemoveDirectory("1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("0"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove("1"));
 
   // 9. it points to 5
   BOOST_CHECK(*it++ == to_s(5));

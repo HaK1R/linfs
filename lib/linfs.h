@@ -17,31 +17,24 @@ namespace linfs {
 
 class LinFS : public FilesystemInterface {
  public:
-  void Release() override;
-
-  ErrorCode Load(const char* device_path) override;
-
   // Service routines:
+  void Release() override;
+  ErrorCode Load(const char* device_path) override;
   ErrorCode Format(const char* device_path, ClusterSize cluster_size) const override;
-  ErrorCode Defrag() override { return ErrorCode::kErrorNotSupported; }
 
-  // File operations:
+  // Filesystem operations:
   FileInterface* OpenFile(const char* path, bool creat_excl, ErrorCode* error_code) override;
-  ErrorCode RemoveFile(const char* path) override;
-
-  // Directory operations:
   ErrorCode CreateDirectory(const char* path) override;
-  ErrorCode RemoveDirectory(const char* path) override;
   uint64_t ListDirectory(const char* path, uint64_t cookie,
                          char* next_buf, ErrorCode* error_code) override;
-
-  // Symbol link operations:
   ErrorCode CreateSymlink(const char* path, const char* target) override;
+  ErrorCode Remove(const char* path) override;
 
  private:
   virtual ~LinFS() = default;
 
-  template <typename T, typename... Args> std::unique_ptr<T> AllocateEntry(Args&&... args);
+  template <typename T, typename... Args>
+  std::unique_ptr<T> AllocateEntry(Args&&... args);
   void ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept;
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);

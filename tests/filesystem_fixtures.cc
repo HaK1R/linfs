@@ -62,14 +62,6 @@ LoadedFSFixture::LoadedFSFixture() {
   BOOST_REQUIRE(ErrorCode::kSuccess == Load(device_path));
 }
 
-ErrorCode LoadedFSFixture::CreateDirectory(const std::string& path) {
-  return fs->CreateDirectory(path.c_str());
-}
-
-ErrorCode LoadedFSFixture::RemoveDirectory(const std::string& path) {
-  return fs->RemoveDirectory(path.c_str());
-}
-
 ErrorCode LoadedFSFixture::OpenFile(const std::string& path, ScopedFile& out_file,
                                     bool creat_excl) {
   ErrorCode error_code;
@@ -78,14 +70,6 @@ ErrorCode LoadedFSFixture::OpenFile(const std::string& path, ScopedFile& out_fil
   BOOST_REQUIRE((out_file.get() != nullptr) == (error_code == ErrorCode::kSuccess));
   if (error_code != ErrorCode::kSuccess)
     out_file.reset();
-  return error_code;
-}
-
-ErrorCode LoadedFSFixture::WriteFile(ScopedFile& file, const std::string& data) {
-  ErrorCode error_code;
-  size_t written = file->Write(data.empty() ? nullptr : data.c_str(), data.size(), &error_code);
-  // Check that |written| and |error_code| are synchronized.
-  BOOST_REQUIRE((written == data.size()) == (error_code == ErrorCode::kSuccess));
   return error_code;
 }
 
@@ -101,6 +85,14 @@ ErrorCode LoadedFSFixture::ReadFile(ScopedFile& file, std::string& data) {
   return error_code;
 }
 
+ErrorCode LoadedFSFixture::WriteFile(ScopedFile& file, const std::string& data) {
+  ErrorCode error_code;
+  size_t written = file->Write(data.empty() ? nullptr : data.c_str(), data.size(), &error_code);
+  // Check that |written| and |error_code| are synchronized.
+  BOOST_REQUIRE((written == data.size()) == (error_code == ErrorCode::kSuccess));
+  return error_code;
+}
+
 ErrorCode LoadedFSFixture::CreateFile(const std::string& path, const std::string& data) {
   ScopedFile file;
   ErrorCode error_code = OpenFile(path, file, true);
@@ -109,12 +101,8 @@ ErrorCode LoadedFSFixture::CreateFile(const std::string& path, const std::string
   return error_code;
 }
 
-ErrorCode LoadedFSFixture::RemoveFile(const std::string& path) {
-  return fs->RemoveFile(path.c_str());
-}
-
-ErrorCode LoadedFSFixture::CreateSymlink(const std::string& path, const std::string& target) {
-  return fs->CreateSymlink(path.c_str(), target.c_str());
+ErrorCode LoadedFSFixture::CreateDirectory(const std::string& path) {
+  return fs->CreateDirectory(path.c_str());
 }
 
 ErrorCode LoadedFSFixture::ListDirectory(const std::string& path,
@@ -128,4 +116,12 @@ ErrorCode LoadedFSFixture::ListDirectory(const std::string& path,
     out_content.push_back(*it);
   }
   return error_code;
+}
+
+ErrorCode LoadedFSFixture::CreateSymlink(const std::string& path, const std::string& target) {
+  return fs->CreateSymlink(path.c_str(), target.c_str());
+}
+
+ErrorCode LoadedFSFixture::Remove(const std::string& path) {
+  return fs->Remove(path.c_str());
 }

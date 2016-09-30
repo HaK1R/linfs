@@ -22,11 +22,14 @@ class FilesystemInterface {
     k4KB = 12
   };
 
+  // Service routines:
+  //
   // 1. Release a filesystem
   //
   // fs->Release();
   //
   // Thread safety: Not thread safe
+  // Error (exception) safety: No error
   virtual void Release() = 0;
 
   // 2. Load a filesystem
@@ -35,6 +38,7 @@ class FilesystemInterface {
   //   ...
   //
   // Thread safety: Not thread safe
+  // Error (exception) safety: Strong guarantee
   virtual ErrorCode Load(const char* device_path) = 0;
 
   // 3. Format a new device
@@ -44,10 +48,10 @@ class FilesystemInterface {
   //   ...
   //
   // Thread safety: Not thread safe
+  // Error (exception) safety: Basic guarantee
   virtual ErrorCode Format(const char* device_path, ClusterSize cluster_size) const = 0;
-  virtual ErrorCode Defrag() = 0;
 
-  // File operations:
+  // Filesystem operations:
   //
   // 1. Open a file
   //
@@ -62,37 +66,19 @@ class FilesystemInterface {
   //  * creat_excl is an analogue of ```O_CREAT | O_EXCL``` mode in open().
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual FileInterface* OpenFile(const char* path, bool creat_excl,
                                   ErrorCode* error_code) = 0;
 
-  // 2. Remove a file
-  //
-  // ErrorCode error_code = fs->RemoveFile("/root/.profile");
-  // if (error_code != ErrorCode::kSuccess)
-  //   ...
-  //
-  // Thread safety: Thread safe
-  virtual ErrorCode RemoveFile(const char* path) = 0;
-
-  // Directory operations:
-  //
-  // 1. Create a directory
+  // 2. Create a directory
   //
   // ErrorCode error_code = fs->CreateDirectory("/root/cache");
   // if (error_code != ErrorCode::kSuccess)
   //   ...
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual ErrorCode CreateDirectory(const char* path) = 0;
-
-  // 2. Remove a directory
-  //
-  // ErrorCode error_code = fs->RemoveDirectory("/root/cache");
-  // if (error_code != ErrorCode::kSuccess)
-  //   ...
-  //
-  // Thread safety: Thread safe
-  virtual ErrorCode RemoveDirectory(const char* path) = 0;
 
   // 3. Iterate over a directory contents
   //
@@ -109,6 +95,7 @@ class FilesystemInterface {
   // }
   //
   // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual uint64_t ListDirectory(const char* path, uint64_t cookie,
                                  char next_buf[kNameMax],
                                  ErrorCode* error_code) = 0;
@@ -124,6 +111,7 @@ class FilesystemInterface {
   // }
   //
   // Thread safety: Not thread safe
+  // Error (exception) safety: Strong guarantee
   class DirectoryIterator : public std::iterator<std::input_iterator_tag, const char*> {
    public:
     DirectoryIterator() = default;
@@ -158,8 +146,25 @@ class FilesystemInterface {
     return DirectoryIterator(this, path, error_code);
   }
 
-  // x. Create a symbol link
+  // 4. Create a symbolic link
+  //
+  // ErrorCode error_code = fs->CreateSymlink("/cache", "/root/cache");
+  // if (error_code != ErrorCode::kSuccess)
+  //   ...
+  //
+  // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
   virtual ErrorCode CreateSymlink(const char* path, const char* target) = 0;
+
+  // 5. Remove a file or directory
+  //
+  // ErrorCode error_code = fs->Remove("/root/cache");
+  // if (error_code != ErrorCode::kSuccess)
+  //   ...
+  //
+  // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
+  virtual ErrorCode Remove(const char* path) = 0;
 
  protected:
   // You are not permitted to delete it directly.  Always use Release().
