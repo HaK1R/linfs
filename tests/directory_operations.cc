@@ -93,6 +93,12 @@ BOOST_FIXTURE_TEST_CASE(create_dir_if_file_exists, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kErrorExists == CreateDirectory("file_or_directory"));
 }
 
+BOOST_FIXTURE_TEST_CASE(create_dir_if_symlink_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("symlink_or_directory", "target"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == CreateDirectory("symlink_or_directory"));
+}
+
 BOOST_FIXTURE_TEST_CASE(create_dir_is_case_sensitive, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
 
@@ -103,6 +109,43 @@ BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 
   BOOST_CHECK(ErrorCode::kErrorNotDirectory == CreateDirectory(".profile/home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_if_target_doesnt_exist, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(ErrorCode::kErrorNotFound == CreateDirectory("lnk/home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_file, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+
+  BOOST_CHECK(ErrorCode::kErrorNotDirectory == CreateDirectory("lnk/home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_file_in_sub_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "home/.profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("home/.profile"));
+
+  BOOST_CHECK(ErrorCode::kErrorNotDirectory == CreateDirectory("lnk/home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "/"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("lnk/home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_dir_in_sub_dirs, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2/3"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2/3/4"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("1/2/3/4/2.lnk", "/1/2"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("1/2/3/4/2.lnk/3/0"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_dir, LoadedFSFixture) {
@@ -353,6 +396,48 @@ BOOST_FIXTURE_TEST_CASE(list_dir_ignores_invalid_cookie, LoadedFSFixture) {
   BOOST_CHECK(0 != fs->ListDirectory("/", cookie, &buf[0], &ec));
   BOOST_CHECK(ErrorCode::kSuccess == ec);
   BOOST_CHECK(buf.c_str() == to_s(2));
+}
+
+BOOST_FIXTURE_TEST_CASE(list_dir_if_fs_has_symlinks, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2/3"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("1/2/3/root.lnk", "/"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("1/2/3/1.lnk", "/1"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("1/2/3/1.lnk/2/file"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("1/2/3/root.lnk/1/2/3/1.lnk/directory"));
+
+  std::vector<std::string> contents;
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("/", contents));
+  BOOST_CHECK(contents == std::vector<std::string>{"1"});
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"2", "directory"}));
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"3", "file"}));
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"3", "file"}));
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2/3", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"root.lnk", "1.lnk"}));
+
+  ///// Follow 1/2/3/root.lnk
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2/3/root.lnk", contents));
+  BOOST_CHECK(contents == std::vector<std::string>{"1"});
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2/3/root.lnk/1", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"2", "directory"}));
+  /////
+
+  ///// Follow 1/2/3/1.lnk
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2/3/1.lnk", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"2", "directory"}));
+
+  BOOST_CHECK(ErrorCode::kSuccess == ListDirectory("1/2/3/1.lnk/2", contents));
+  BOOST_CHECK(contents == (std::vector<std::string>{"3", "file"}));
+  /////
 }
 
 BOOST_AUTO_TEST_SUITE_END()

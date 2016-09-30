@@ -72,16 +72,22 @@ BOOST_FIXTURE_TEST_CASE(open_file_with_too_long_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kErrorNameTooLong == OpenFile(std::string(kNameMax + 1, 'a'), file));
 }
 
+BOOST_FIXTURE_TEST_CASE(open_file_if_dir_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("file_or_directory"));
+
+  BOOST_CHECK(ErrorCode::kErrorIsDirectory == OpenFile("file_or_directory", file));
+}
+
 BOOST_FIXTURE_TEST_CASE(open_file_if_file_exists, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 
   BOOST_CHECK(ErrorCode::kSuccess == OpenFile(".profile", file));
 }
 
-BOOST_FIXTURE_TEST_CASE(open_file_if_dir_exists, LoadedFSFixture) {
-  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("file_or_directory"));
+BOOST_FIXTURE_TEST_CASE(open_file_if_symlink_exists, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("file_or_symlink", "target"));
 
-  BOOST_CHECK(ErrorCode::kErrorIsDirectory == OpenFile("file_or_directory", file));
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile("file_or_symlink", file));
 }
 
 BOOST_FIXTURE_TEST_CASE(open_file_if_creat_excl, LoadedFSFixture) {
@@ -92,6 +98,33 @@ BOOST_FIXTURE_TEST_CASE(open_file_if_file_exists_and_creat_excl, LoadedFSFixture
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile.lock"));
 
   BOOST_CHECK(ErrorCode::kErrorExists == OpenFile(".profile.lock", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_via_symlink_if_creat_excl, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == OpenFile("lnk", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_if_file_created_via_symlink_and_creat_excl, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile("lnk"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == OpenFile(".profile", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_via_symlink_if_file_exists_and_creat_excl, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == OpenFile("lnk", file, true));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_via_symlink_target_with_long_name_if_file_exists_and_creat_excl, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", std::string(kNameMax, 'a')));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(std::string(kNameMax, 'a')));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == OpenFile("lnk", file, true));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_file, LoadedFSFixture) {

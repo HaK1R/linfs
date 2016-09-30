@@ -157,6 +157,9 @@ class FilesystemInterface {
   DirectoryIterator ListDirectory(const char* path, ErrorCode& error_code) {
     return DirectoryIterator(this, path, error_code);
   }
+
+  // x. Create a symbol link
+  virtual ErrorCode CreateSymlink(const char* path, const char* target) = 0;
 };
 
 }  // namespace fs

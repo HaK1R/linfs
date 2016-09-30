@@ -52,6 +52,16 @@ class EntryLayout {
   };
   STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(FileHeader);
 
+  struct __attribute__((packed)) SymlinkHeader {
+    SymlinkHeader(const char* _name) {
+      strncpy(name, _name, sizeof name);
+    }
+    // ---
+    _Header common{Entry::Type::kSymlink};
+    char name[kNameMax];         // symlink name
+  };
+  STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(SymlinkHeader);
+
   union __attribute__((packed)) HeaderUnion {
     // Make compiler happy with the default constructor
     HeaderUnion() {}
@@ -60,6 +70,7 @@ class EntryLayout {
     NoneHeader none;
     DirectoryHeader directory;
     FileHeader file;
+    SymlinkHeader symlink;
   };
   STATIC_ASSERT_TRIVIALLY_COPYABLE(HeaderUnion);
 

@@ -66,6 +66,12 @@ Path Path::ExceptLastName() const {
   return Path(std::string(data_, 0, it));
 }
 
+Path Path::operator/(const Path& that) const {
+  if (data_.empty())
+    return that;
+  return Path(data_ + "/" + that.data_);
+}
+
 }  // namespace linfs
 
 }  // namespace fs

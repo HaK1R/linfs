@@ -6,6 +6,10 @@ namespace fs {
 
 namespace linfs {
 
+#define STATIC_ASSERT_BASE_OF(Base, Derived) \
+  static_assert(std::is_base_of<Base, Derived>::value, \
+                #Base " isn't a base type of " #Derived)
+
 #define STATIC_ASSERT_STANDARD_LAYOUT(Type) \
   static_assert(std::is_standard_layout<Type>::value, \
                 #Type " isn't a standard-layout type")

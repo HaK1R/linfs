@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "lib/entries/entry.h"
+#include "lib/entries/symlink_entry.h"
 #include "lib/file_impl.h"
 #include "lib/layout/device_layout.h"
 #include "lib/utils/exception_handler.h"
@@ -58,25 +59,33 @@ void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
-  std::shared_ptr<DirectoryEntry> dir = root_entry_;
-  while (!path.Empty()) {
-    // Lock the directory until the shared entry is constructed.
+  std::shared_ptr<DirectoryEntry> dir = root_entry_, next_dir;
+
+  for (; !path.Empty(); dir = std::move(next_dir)) {
     std::shared_lock<SharedMutex> lock = dir->LockShared();
 
-    std::unique_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(), accessor_.get());
+    std::unique_ptr<Entry> entry = dir->FindEntryByName(path.FirstName(),
+                                                        accessor_.get());
     if (entry == nullptr) {
       error_code = ErrorCode::kErrorNotFound;
       return nullptr;
+    }
+    if (entry->type() == Entry::Type::kSymlink) {
+      // In despite of the fact that SymlinkEntry has its own lock mechanism
+      // we always use the lock of the parent directory.
+      Path target = entry->As<SymlinkEntry>()->GetTarget(accessor_.get());
+
+      // Search the resolved |path| starting from the root directory.
+      next_dir = root_entry_;
+      path = target / path.ExceptFirstName();
+      continue;
     }
     if (entry->type() != Entry::Type::kDirectory) {
       error_code = ErrorCode::kErrorNotDirectory;
       return nullptr;
     }
 
-    std::shared_ptr<Entry> shared_entry = cache_.GetSharedEntry(std::move(entry));
-    // Safe to unlock here. But we will wait a little bit more.
-
-    dir = static_pointer_cast<DirectoryEntry>(shared_entry);
+    next_dir = static_pointer_cast<DirectoryEntry>(cache_.GetSharedEntry(std::move(entry)));
     path = path.ExceptFirstName();
   }
 
@@ -143,34 +152,43 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
     if (*error_code != ErrorCode::kSuccess)
       return nullptr;
 
-    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
-    if (*error_code != ErrorCode::kSuccess)
-      return nullptr;
+    // Unlike other entries, FileEntry should follow for the symlinks.  This
+    // can be done by resolving symbolic links in the loop.
+    while (1) {
+      std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
+      if (*error_code != ErrorCode::kSuccess)
+        return nullptr;
 
-    std::unique_lock<SharedMutex> lock = cwd->Lock();
+      std::unique_lock<SharedMutex> lock = cwd->Lock();
 
-    std::unique_ptr<Entry> file = cwd->FindEntryByName(path.BaseName(), accessor_.get());
-    if (!file) {
-      file = AllocateEntry<FileEntry>(path.BaseName());
-      try {
-        cwd->AddEntry(file.get(), accessor_.get(), allocator_.get());
-      } catch (...) {
-        ReleaseEntry(file);
-        throw;
+      std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
+      if (!entry) {
+        entry = AllocateEntry<FileEntry>(path.BaseName());
+        try {
+          cwd->AddEntry(entry.get(), accessor_.get(), allocator_.get());
+        } catch (...) {
+          ReleaseEntry(entry);
+          throw;
+        }
       }
-    }
-    else if (file->type() == Entry::Type::kDirectory) {
-      *error_code = ErrorCode::kErrorIsDirectory;
-      return nullptr;
-    }
-    else if (creat_excl) {
-      *error_code = ErrorCode::kErrorExists;
-      return nullptr;
-    }
+      else if (entry->type() == Entry::Type::kSymlink) {
+        // It's a symlink.  Start again.
+        path = entry->As<SymlinkEntry>()->GetTarget(accessor_.get());
+        continue;
+      }
+      else if (entry->type() != Entry::Type::kFile) {
+        *error_code = ErrorCode::kErrorIsDirectory;
+        return nullptr;
+      }
+      else if (creat_excl) {
+        *error_code = ErrorCode::kErrorExists;
+        return nullptr;
+      }
 
-    std::shared_ptr<FileEntry> shared_file =
-        static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(file)));
-    return new FileImpl(shared_file, accessor_->Duplicate(), allocator_.get());
+      std::shared_ptr<FileEntry> shared_file =
+          static_pointer_cast<FileEntry>(cache_.GetSharedEntry(std::move(entry)));
+      return new FileImpl(shared_file, accessor_->Duplicate(), allocator_.get());
+    }
   }
   catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
@@ -265,7 +283,7 @@ ErrorCode LinFS::RemoveDirectory(const char* path_cstr) {
 
     // Safe to check without locking the entry's lock |entry->Lock()|
     // because no one refers to (and uses) it at the moment.
-    bool has_entries = static_cast<DirectoryEntry*>(entry.get())->HasEntries(accessor_.get());
+    bool has_entries = entry->As<DirectoryEntry>()->HasEntries(accessor_.get());
     if (has_entries)
       return ErrorCode::kErrorDirectoryNotEmpty;
 
@@ -297,6 +315,42 @@ uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
   catch (...) {
     *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
     return 0;
+  }
+}
+
+ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
+  ErrorCode error_code;
+
+  try {
+    Path path = Path::Normalize(path_cstr, error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    Path target = Path::Normalize(target_cstr, error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
+    if (error_code != ErrorCode::kSuccess)
+      return error_code;
+
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
+
+    if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
+      return ErrorCode::kErrorExists;
+
+    std::unique_ptr<Entry> symlink = AllocateEntry<SymlinkEntry>(
+        path.BaseName(), target.Normalized(), allocator_.get());
+    try {
+      cwd->AddEntry(symlink.get(), accessor_.get(), allocator_.get());
+    } catch (...) {
+      ReleaseEntry(symlink);
+      throw;
+    }
+    return ErrorCode::kSuccess;
+  }
+  catch (...) {
+    return ExceptionHandler::ToErrorCode(std::current_exception());
   }
 }
 

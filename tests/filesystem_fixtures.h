@@ -71,6 +71,8 @@ struct LoadedFSFixture : FormattedFSFixture {
   fs::ErrorCode CreateFile(const std::string& path,
                            const std::string& data = "");
   fs::ErrorCode RemoveFile(const std::string& path);
+  fs::ErrorCode CreateSymlink(const std::string& path,
+                              const std::string& target);
   fs::ErrorCode ListDirectory(const std::string& path,
                               std::vector<std::string>& out_content);
 

@@ -21,10 +21,14 @@ class Path {
   static Path Normalize(const char* path_cstr, ErrorCode& error_code);
 
   bool Empty() const { return data_.empty(); }
+  const char* Normalized() const { return data_.c_str(); }
   Name FirstName() const;
   Path ExceptFirstName() const;
   Name LastName() const;
   Path ExceptLastName() const;
+
+  // Concatenate two paths.
+  Path operator/(const Path& that) const;
 
   // Define well known aliases.
   template <typename... Args>

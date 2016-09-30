@@ -35,6 +35,9 @@ class LinFS : public FilesystemInterface {
   uint64_t ListDirectory(const char* path, uint64_t cookie,
                          char* next_buf, ErrorCode* error_code) override;
 
+  // Symbol link operations:
+  ErrorCode CreateSymlink(const char* path, const char* target) override;
+
  private:
   virtual ~LinFS() = default;
 

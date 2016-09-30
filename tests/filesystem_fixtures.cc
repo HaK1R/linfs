@@ -113,9 +113,14 @@ ErrorCode LoadedFSFixture::RemoveFile(const std::string& path) {
   return fs->RemoveFile(path.c_str());
 }
 
+ErrorCode LoadedFSFixture::CreateSymlink(const std::string& path, const std::string& target) {
+  return fs->CreateSymlink(path.c_str(), target.c_str());
+}
+
 ErrorCode LoadedFSFixture::ListDirectory(const std::string& path,
                                          std::vector<std::string>& out_content) {
   ErrorCode error_code;
+  out_content.clear();
   for (FilesystemInterface::DirectoryIterator it = fs->ListDirectory(path.c_str(), error_code);
        it != FilesystemInterface::DirectoryIterator(); ++it) {
     if (error_code != ErrorCode::kSuccess)

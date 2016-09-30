@@ -7,6 +7,7 @@
 #include "lib/layout/section_layout.h"
 #include "lib/sections/section.h"
 #include "lib/utils/shared_mutex.h"  // for std::shared_lock, SharedMutex
+#include "lib/utils/macros.h"
 
 namespace fs {
 
@@ -19,7 +20,8 @@ class Entry {
   enum class Type : uint8_t {
     kNone = 0,       // for unused sections
     kDirectory = 1,  // entry's sections represent a directory
-    kFile = 2        // entry's sections represent a file
+    kFile = 2,       // entry's sections represent a file
+    kSymlink = 3,    // entry's sections represent a symlink
   };
 
   // Loads an entry from the device.
@@ -36,6 +38,13 @@ class Entry {
   uint64_t base_offset() const { return base_offset_; }
   uint64_t section_offset() const {
     return base_offset() - sizeof(SectionLayout::Header);
+  }
+
+  // Cast to derived class.
+  template <typename T>
+  T* As() {
+    STATIC_ASSERT_BASE_OF(Entry, T);
+    return static_cast<T*>(this);
   }
 
   // Acquires exclusive ownership for read-write access.
