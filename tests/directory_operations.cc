@@ -440,4 +440,30 @@ BOOST_FIXTURE_TEST_CASE(list_dir_if_fs_has_symlinks, LoadedFSFixture) {
   /////
 }
 
+BOOST_FIXTURE_TEST_CASE(is_directory_for_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+
+  BOOST_CHECK(fs->IsDirectory("home", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_directory_for_file, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+
+  BOOST_CHECK(!fs->IsDirectory(".profile", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_directory_for_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(!fs->IsDirectory("lnk", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_directory_if_doesnt_exist, LoadedFSFixture) {
+  BOOST_CHECK(!fs->IsDirectory("home", &ec));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == ec);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

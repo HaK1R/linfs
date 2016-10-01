@@ -29,6 +29,9 @@ class LinFS : public FilesystemInterface {
                          char* next_buf, ErrorCode* error_code) override;
   ErrorCode CreateSymlink(const char* path, const char* target) override;
   ErrorCode Remove(const char* path) override;
+  bool IsFile(const char* path, ErrorCode* error_code) override;
+  bool IsDirectory(const char* path, ErrorCode* error_code) override;
+  bool IsSymlink(const char* path, ErrorCode* error_code) override;
 
  private:
   virtual ~LinFS() = default;
@@ -38,6 +41,7 @@ class LinFS : public FilesystemInterface {
   void ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept;
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);
+  bool IsType(const char* path, ErrorCode* error_code, Entry::Type type);
 
   std::unique_ptr<ReaderWriter> accessor_;
   std::unique_ptr<SectionAllocator> allocator_;

@@ -166,6 +166,21 @@ class FilesystemInterface {
   // Error (exception) safety: Strong guarantee
   virtual ErrorCode Remove(const char* path) = 0;
 
+  // 6. Check whether path points to file/directory/symlink or not
+  //
+  // ErrorCode error_code;
+  // bool is_file = fs->IsFile("root/.profile", &error_code);
+  // if (error_code != ErrorCode::kSuccess)
+  //   ...
+  // std::cout << std::boolalpha << is_file << std::endl;
+  //   ...
+  //
+  // Thread safety: Thread safe
+  // Error (exception) safety: Strong guarantee
+  virtual bool IsFile(const char* path, ErrorCode* error_code) = 0;
+  virtual bool IsDirectory(const char* path, ErrorCode* error_code) = 0;
+  virtual bool IsSymlink(const char* path, ErrorCode* error_code) = 0;
+
  protected:
   // You are not permitted to delete it directly.  Always use Release().
   ~FilesystemInterface() = default;

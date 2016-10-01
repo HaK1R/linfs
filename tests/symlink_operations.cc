@@ -170,4 +170,30 @@ BOOST_FIXTURE_TEST_CASE(remove_symlink_if_already_removed, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("Lnk"));
 }
 
+BOOST_FIXTURE_TEST_CASE(is_symlink_for_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(fs->IsSymlink("lnk", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_symlink_for_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+
+  BOOST_CHECK(!fs->IsSymlink("home", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_symlink_for_file, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+
+  BOOST_CHECK(!fs->IsSymlink(".profile", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_symlink_if_doesnt_exist, LoadedFSFixture) {
+  BOOST_CHECK(!fs->IsSymlink("lnk", &ec));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == ec);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

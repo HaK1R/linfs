@@ -511,4 +511,30 @@ BOOST_FIXTURE_TEST_CASE(get_size_after_set_cursor, LoadedFSFixture) {
   BOOST_CHECK(2 == file->GetSize());
 }
 
+BOOST_FIXTURE_TEST_CASE(is_file_for_file, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
+
+  BOOST_CHECK(fs->IsFile(".profile", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_file_for_dir, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+
+  BOOST_CHECK(!fs->IsFile("home", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_file_for_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(!fs->IsFile("lnk", &ec));
+  BOOST_CHECK(ErrorCode::kSuccess == ec);
+}
+
+BOOST_FIXTURE_TEST_CASE(is_file_if_doesnt_exist, LoadedFSFixture) {
+  BOOST_CHECK(!fs->IsFile(".profile", &ec));
+  BOOST_CHECK(ErrorCode::kErrorNotFound == ec);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

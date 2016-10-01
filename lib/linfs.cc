@@ -331,6 +331,45 @@ ErrorCode LinFS::Remove(const char* path_cstr) {
   }
 }
 
+bool LinFS::IsFile(const char* path_cstr, ErrorCode* error_code) {
+  return IsType(path_cstr, error_code, Entry::Type::kFile);
+}
+
+bool LinFS::IsDirectory(const char* path_cstr, ErrorCode* error_code) {
+  return IsType(path_cstr, error_code, Entry::Type::kDirectory);
+}
+
+bool LinFS::IsSymlink(const char* path_cstr, ErrorCode* error_code) {
+  return IsType(path_cstr, error_code, Entry::Type::kSymlink);
+}
+
+bool LinFS::IsType(const char* path_cstr, ErrorCode* error_code, Entry::Type type) {
+  assert(path_cstr != nullptr && error_code != nullptr);
+
+  try {
+    Path path = Path::Normalize(path_cstr, *error_code);
+    if (*error_code != ErrorCode::kSuccess)
+      return false;
+
+    std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
+    if (*error_code != ErrorCode::kSuccess)
+      return false;
+
+    std::unique_lock<SharedMutex> lock = cwd->Lock();
+
+    std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
+    if (entry == nullptr) {
+      *error_code = ErrorCode::kErrorNotFound;
+      return false;
+    }
+    return entry->type() == type;
+  }
+  catch (...) {
+    *error_code = ExceptionHandler::ToErrorCode(std::current_exception());
+    return false;
+  }
+}
+
 }  // namespace linfs
 
 }  // namespace fs
