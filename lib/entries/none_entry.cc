@@ -4,6 +4,10 @@
 
 #include "lib/layout/entry_layout.h"
 
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
 namespace fs {
 
 namespace linfs {
@@ -18,26 +22,27 @@ std::unique_ptr<NoneEntry> NoneEntry::Create(uint64_t entry_offset,
 Section NoneEntry::GetSection(uint64_t max_size, ReaderWriter* reader_writer) {
   assert(HasSections() && "there are no sections in NoneEntry");
 
-  // We don't want to use the head because of exception safety, but using its
-  // tail we can provide strong exception guarantee.
-  Section tail = Section::Load(head_offset(), reader_writer), prev = tail;
-  while (tail.next_offset() != 0) {
-    prev = tail;
-    tail = Section::Load(tail.next_offset(), reader_writer);
-  }
-
-  if (tail.size() > max_size) {
-    Section result = Section::Create(tail.base_offset() + tail.size() - max_size,
+  Section head = Section::Load(head_offset(), reader_writer);
+  if (head.size() > max_size) {
+    Section result = Section::Create(head.base_offset() + head.size() - max_size,
                                      max_size, reader_writer);
-    tail.SetSize(tail.size() - max_size, reader_writer);
+    head.SetSize(head.size() - max_size, reader_writer);
     return result;
   }
   else {
-    if (head_offset() == tail.base_offset())
-      SetHead(0, reader_writer);
-    else
-      prev.SetNext(0, reader_writer);
-    return tail;
+    SetHead(head.next_offset(), reader_writer);
+    // Drop the broken section if its |next_offset| field isn't writable.
+    try {
+      head.SetNext(0, reader_writer);
+    }
+    catch (...) {
+#ifndef NDEBUG
+      std::cerr << "Leaked section at " << std::hex << head.base_offset()
+                << " of size " << std::dec << head.size() << std::endl;
+#endif
+      throw;
+    }
+    return head;
   }
 }
 
