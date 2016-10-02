@@ -4,6 +4,7 @@
 
 #include "fs/limits.h"
 
+#include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(DirectoryOperationsTestSuite)
@@ -146,6 +147,18 @@ BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_dir_in_sub_dirs, LoadedFSF
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("1/2/3/4/2.lnk", "/1/2"));
 
   BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("1/2/3/4/2.lnk/3/0"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_many_dirs_if_reuse_unused_sections, LoadedFSFixture) {
+  for (int i = 0; i < kMany; ++i)
+    BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
+  uintmax_t device_size = boost::filesystem::file_size(device_path);
+  for (int i = 0; i < kMany; ++i)
+    BOOST_REQUIRE(ErrorCode::kSuccess == Remove(to_s(i)));
+
+  for (int i = 0; i < kMany; ++i)
+    BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory(to_s(i)));
+  BOOST_CHECK(device_size == boost::filesystem::file_size(device_path));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_one_dir, LoadedFSFixture) {

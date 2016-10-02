@@ -4,6 +4,7 @@
 
 #include "fs/limits.h"
 
+#include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(FileOperationsTestSuite)
@@ -228,6 +229,16 @@ BOOST_FIXTURE_TEST_CASE(write_many_bytes_two_files, LoadedFSFixture) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(write_many_bytes_if_reuse_unused_sections, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", std::string(k1MB, 'a')));
+  uintmax_t device_size = boost::filesystem::file_size(device_path);
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove(".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  BOOST_CHECK(ErrorCode::kSuccess == WriteFile(file, std::string(k1MB, 'a')));
+  BOOST_CHECK(device_size == boost::filesystem::file_size(device_path));
+}
+
 BOOST_FIXTURE_TEST_CASE(read_empty_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
 
@@ -352,6 +363,22 @@ BOOST_FIXTURE_TEST_CASE(read_many_bytes_two_files, LoadedFSFixture) {
     std::string from_file2(k100KB, '\0');
     BOOST_CHECK(ErrorCode::kSuccess == ReadFile(file2, from_file2));
     BOOST_CHECK(from_file2 == to_file2.substr(i * k100KB, k100KB));
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(read_many_bytes_many_read_if_reuse_unused_sections, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", std::string(k1MB, 'a')));
+  BOOST_REQUIRE(ErrorCode::kSuccess == Remove(".profile"));
+  std::string to_file;  // 1MB
+  for (int i = 0; i < 10; ++i)
+    to_file += std::string(k100KB, 'a' + i);
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile", to_file));
+  BOOST_REQUIRE(ErrorCode::kSuccess == OpenFile(".profile", file));
+
+  for (int i = 0; i < 10; ++i) {
+    std::string from_file(k100KB, '\0');
+    BOOST_CHECK(ErrorCode::kSuccess == ReadFile(file, from_file));
+    BOOST_CHECK(from_file == to_file.substr(i * k100KB, k100KB));
   }
 }
 

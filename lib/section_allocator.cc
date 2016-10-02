@@ -18,11 +18,15 @@ Section SectionAllocator::AllocateSection(uint64_t size, ReaderWriter* reader_wr
   // them.
   std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
+  // Round up to the |cluster_size_| boundary.  It's correct because
+  // |cluster_size_| is always equal to power of 2.
+  size = (size + cluster_size_ - 1) & ~(cluster_size_ - 1);
+
   if (none_entry_->HasSections())
     return none_entry_->GetSection(size, reader_writer);
 
   // There is nothing in NoneEntry chain.  Allocate a new cluster.
-  uint64_t required_clusters = (size + cluster_size_ - 1) / cluster_size_;
+  uint64_t required_clusters = size / cluster_size_;
   Section section = Section::Create(total_clusters_ * cluster_size_,
                                     required_clusters * cluster_size_, reader_writer);
   reader_writer->Write<uint8_t>(0, section.base_offset() + section.size() - 1);
@@ -34,9 +38,10 @@ void SectionAllocator::ReleaseSection(const Section& section,
                                       ReaderWriter* reader_writer) noexcept {
   std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
+  // TODO section chain
   uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
   try {
-    if (last_cluster_offset == section.base_offset())
+    if (last_cluster_offset == section.base_offset() && !section.next_offset())
       SetTotalClusters(total_clusters_ - section.size() / cluster_size_, reader_writer);
     else
       none_entry_->PutSection(section, reader_writer);
