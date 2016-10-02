@@ -94,14 +94,16 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
 }
 
 ErrorCode LinFS::Load(const char* device_path) {
+  assert(device_path != nullptr);
+
   if (accessor_)
     // Find a way to say that filesystem has already been loaded.
     return ErrorCode::kErrorBusy;
 
+  ErrorCode error_code;
   try {
     accessor_.reset(new ReaderWriter(device_path, std::ios_base::in | std::ios_base::out));
 
-    ErrorCode error_code;
     DeviceLayout::Header header = DeviceLayout::ParseHeader(accessor_.get(), error_code);
     if (error_code != ErrorCode::kSuccess) {
       accessor_.reset();
@@ -126,14 +128,16 @@ ErrorCode LinFS::Load(const char* device_path) {
 }
 
 ErrorCode LinFS::Format(const char* device_path, ClusterSize cluster_size) const {
+  assert(device_path != nullptr);
+
+  DeviceLayout::Header header(cluster_size);
+  DeviceLayout::Body body(header);
   try {
     std::unique_ptr<ReaderWriter> writer(
         new ReaderWriter(device_path, std::ios_base::out | std::ios_base::trunc));
 
-    DeviceLayout::Header header(cluster_size);
     DeviceLayout::WriteHeader(header, writer.get());
 
-    DeviceLayout::Body body(header);
     NoneEntry::Create(header.none_entry_offset, sizeof body.none_entry, writer.get());
     Section root_section =
         Section::Create(header.root_entry_offset - sizeof body.root.section,
@@ -203,8 +207,8 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
 ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
   assert(path_cstr != nullptr);
 
+  ErrorCode error_code;
   try {
-    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
@@ -258,8 +262,8 @@ uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
 ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
   assert(path_cstr != nullptr && target_cstr != nullptr);
 
+  ErrorCode error_code;
   try {
-    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
@@ -296,8 +300,8 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
 ErrorCode LinFS::Remove(const char* path_cstr) {
   assert(path_cstr != nullptr);
 
+  ErrorCode error_code;
   try {
-    ErrorCode error_code;
     Path path = Path::Normalize(path_cstr, error_code);
     if (error_code != ErrorCode::kSuccess)
       return error_code;
