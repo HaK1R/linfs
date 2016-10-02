@@ -15,16 +15,16 @@ namespace linfs {
 
 class DeviceLayout {
  public:
-  struct alignas(8) Header {
+  PACK(struct alignas(8) Header {
     Header() = default;
     Header(FilesystemInterface::ClusterSize cluster_size)
         : cluster_size_log2(static_cast<uint8_t>(cluster_size)) {}
     // ---
     char identifier[8] = {'\0', 'f', 'i', 'l', 'e', 'f', 's', '='};  // fs code
-    struct __attribute__((packed)) {
+    PACK(struct {
       uint8_t major = 1;
       uint8_t minor = 0;
-    } version;                    // version (for backward compatibility)
+    }) version;                   // version (for backward compatibility)
     uint8_t cluster_size_log2;    // 2^n is actual cluster size
     uint8_t reserved0 = 0;        // reserved for future usage (but actually I'm
                                   // worry about alignment on ARM/SPARC etc.)
@@ -33,23 +33,23 @@ class DeviceLayout {
     uint16_t root_entry_offset =  // location of "/" entry
         sizeof(Header) + offsetof(Body, root.entry);
     uint64_t total_clusters = 1;  // total number of allocated clusters
-  } __attribute__((packed));
+  });
   static_assert(sizeof(Header::cluster_size_log2) == sizeof(FilesystemInterface::ClusterSize),
                 "DeviceLayout::Header requires ClusterSize be of size uint8_t");
   STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 
   // The device's body looks as follows, and is used only to calculate offsets:
-  struct alignas(8) Body {
+  PACK(struct alignas(8) Body {
     Body(const Header& header)
         : root({/*section=*/{(1 << header.cluster_size_log2) -
                                  header.root_entry_offset + sizeof root.section, 0}}) {}
     // ---
     const EntryLayout::NoneHeader none_entry{0};
-    const struct {
+    PACK(const struct {
       SectionLayout::Header section = {0, 0};
       EntryLayout::DirectoryHeader entry{""};
-    } __attribute__((packed)) root;
-  } __attribute__((packed));
+    }) root;
+  });
   STATIC_ASSERT_STANDARD_LAYOUT(Body);
 
   static Header ParseHeader(ReaderWriter* reader, ErrorCode& error_code);

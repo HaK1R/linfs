@@ -10,10 +10,10 @@ namespace linfs {
 
 class SectionLayout {
  public:
-  struct alignas(8) Header {
+  PACK(struct alignas(8) Header {
     uint64_t size;         // size of this section
     uint64_t next_offset;  // offset of the next section
-  } __attribute__((packed));
+  });
   STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 
   // The section's body looks like:

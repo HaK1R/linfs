@@ -22,6 +22,15 @@ namespace linfs {
   STATIC_ASSERT_STANDARD_LAYOUT(Type); \
   STATIC_ASSERT_TRIVIALLY_COPYABLE(Type)
 
+
+#ifdef _MSC_VER  // For Visual C++ compiler
+#define PACK(...) \
+  __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else  // !_MSC_VER
+#define PACK(...) \
+  __VA_ARGS__ __attribute__((packed))
+#endif  // _MSC_VER
+
 }  // namespace linfs
 
 }  // namespace fs
