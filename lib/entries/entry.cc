@@ -28,20 +28,23 @@ void CopyName(char* dest, const char* src) {
 
 std::unique_ptr<Entry> Entry::Load(uint64_t entry_offset, ReaderWriter* reader,
                                    char* name_buf) {
-  EntryLayout::HeaderUnion entry_header = reader->Read<EntryLayout::HeaderUnion>(entry_offset);
+  EntryLayout::HeaderStorage header_storage;
+  reader->Read(entry_offset, reinterpret_cast<char*>(&header_storage), sizeof header_storage);
 
-  switch (static_cast<Entry::Type>(entry_header.common.type)) {
+  EntryLayout::HeaderUnion* header = reinterpret_cast<EntryLayout::HeaderUnion*>(&header_storage);
+  switch (static_cast<Entry::Type>(header->none.common.type)) {
     case Entry::Type::kNone:
       return std::make_unique<NoneEntry>(entry_offset,
-                                         ByteOrder::Unpack(entry_header.none.head_offset));
+                                         ByteOrder::Unpack(header->none.head_offset));
     case Entry::Type::kDirectory:
-      CopyName(name_buf, entry_header.directory.name);
+      CopyName(name_buf, header->directory.name);
       return std::make_unique<DirectoryEntry>(entry_offset);
     case Entry::Type::kFile:
-      CopyName(name_buf, entry_header.file.name);
-      return std::make_unique<FileEntry>(entry_offset, ByteOrder::Unpack(entry_header.file.size));
+      CopyName(name_buf, header->file.name);
+      return std::make_unique<FileEntry>(entry_offset,
+                                         ByteOrder::Unpack(header->file.size));
     case Entry::Type::kSymlink:
-      CopyName(name_buf, entry_header.symlink.name);
+      CopyName(name_buf, header->symlink.name);
       return std::make_unique<SymlinkEntry>(entry_offset);
   }
 

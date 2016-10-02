@@ -15,7 +15,7 @@ namespace linfs {
 
 class DeviceLayout {
  public:
-  struct __attribute__((packed, aligned(8))) Header {
+  struct alignas(8) Header {
     Header() = default;
     Header(FilesystemInterface::ClusterSize cluster_size)
         : cluster_size_log2(static_cast<uint8_t>(cluster_size)) {}
@@ -33,23 +33,23 @@ class DeviceLayout {
     uint16_t root_entry_offset =  // location of "/" entry
         sizeof(Header) + offsetof(Body, root.entry);
     uint64_t total_clusters = 1;  // total number of allocated clusters
-  };
+  } __attribute__((packed));
   static_assert(sizeof(Header::cluster_size_log2) == sizeof(FilesystemInterface::ClusterSize),
                 "DeviceLayout::Header requires ClusterSize be of size uint8_t");
   STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 
   // The device's body looks as follows, and is used only to calculate offsets:
-  struct __attribute__((packed)) Body {
+  struct alignas(8) Body {
     Body(const Header& header)
         : root({/*section=*/{(1 << header.cluster_size_log2) -
                                  header.root_entry_offset + sizeof root.section, 0}}) {}
     // ---
     const EntryLayout::NoneHeader none_entry{0};
-    const struct __attribute__((packed)) {
+    const struct {
       SectionLayout::Header section = {0, 0};
       EntryLayout::DirectoryHeader entry{""};
-    } root;
-  };
+    } __attribute__((packed)) root;
+  } __attribute__((packed));
   STATIC_ASSERT_STANDARD_LAYOUT(Body);
 
   static Header ParseHeader(ReaderWriter* reader, ErrorCode& error_code);
