@@ -38,17 +38,14 @@ void SectionAllocator::ReleaseSection(const Section& section,
                                       ReaderWriter* reader_writer) noexcept {
   std::unique_lock<SharedMutex> lock = none_entry_->Lock();
 
-  // TODO section chain
-  uint64_t last_cluster_offset = (total_clusters_ - 1) * cluster_size_;
   try {
-    if (last_cluster_offset == section.base_offset() && !section.next_offset())
-      SetTotalClusters(total_clusters_ - section.size() / cluster_size_, reader_writer);
-    else
-      none_entry_->PutSection(section, reader_writer);
+    // Actually in some cases we can decrease |total_clusters_| instead of putting
+    // the released sections to NoneEntry, but for now it doesn't matter.
+    none_entry_->PutSection(section, reader_writer);
   }
   catch (...) {
 #ifndef NDEBUG
-    std::cerr << "Leaked section at " << std::hex << section.base_offset()
+    std::cerr << "Leaked section(s) at " << std::hex << section.base_offset()
               << " of size " << std::dec << section.size() << std::endl;
 #endif
   }
@@ -62,7 +59,7 @@ void SectionAllocator::ReleaseSection(uint64_t section_offset,
   }
   catch (...) {
 #ifndef NDEBUG
-    std::cerr << "Leaked section at " << std::hex << section_offset << std::endl;
+    std::cerr << "Leaked section(s) at " << std::hex << section_offset << std::endl;
 #endif
   }
 }
