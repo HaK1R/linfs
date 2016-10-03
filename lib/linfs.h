@@ -37,7 +37,8 @@ class LinFS : public FilesystemInterface {
   virtual ~LinFS() = default;
 
   template <typename T, typename... Args>
-  std::unique_ptr<T> AllocateEntry(Args&&... args);
+  std::unique_ptr<T> CreateEntry(DirectoryEntry* cwd, ErrorCode& error_code,
+                                 Path::Name&& name, Args&&... args);
   void ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept;
 
   std::shared_ptr<DirectoryEntry> GetDirectory(Path path, ErrorCode& error_code);

@@ -7,6 +7,7 @@
 #include "fs/linfs_factory.h"
 
 // 2. C/C++ system files
+#include <cassert>
 #include <new>
 
 // 3. Project's headers
@@ -15,9 +16,10 @@
 namespace fs {
 
 FilesystemInterface* CreateLinFS(ErrorCode* error_code) {
+  assert(error_code != nullptr);
+
   FilesystemInterface* result = new (std::nothrow) linfs::LinFS;
-  if (error_code)
-    *error_code = result != nullptr ? ErrorCode::kSuccess : ErrorCode::kErrorNoMemory;
+  *error_code = result != nullptr ? ErrorCode::kSuccess : ErrorCode::kErrorNoMemory;
   return result;
 }
 

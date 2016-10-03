@@ -39,19 +39,25 @@ void LinFS::Release() {
 }
 
 template <typename T, typename... Args>
-std::unique_ptr<T> LinFS::AllocateEntry(Args&&... args) {
-  Section place = allocator_->AllocateSection(1, accessor_.get());
+std::unique_ptr<T> LinFS::CreateEntry(DirectoryEntry* cwd, ErrorCode& error_code,
+                                      Path::Name&& name, Args&&... args) {
+  if (!name) {
+    error_code = ErrorCode::kErrorNotFound;
+    return nullptr;
+  }
 
-  std::unique_ptr<T> entry;
+  Section place = allocator_->AllocateSection(1, accessor_.get());
   try {
-    entry = T::Create(place.data_offset(), place.data_size(),
-                      accessor_.get(), std::forward<Args>(args)...);
+    std::unique_ptr<T> entry = T::Create(place.data_offset(), place.data_size(),
+                                         accessor_.get(), std::move(name),
+                                         std::forward<Args>(args)...);
+    cwd->AddEntry(entry.get(), accessor_.get(), allocator_.get());
+    return entry;
   }
   catch (...) {
     allocator_->ReleaseSection(place, accessor_.get());
     throw;
   }
-  return entry;
 }
 
 void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
@@ -60,8 +66,8 @@ void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
-  int symlink_depth = 0;
   std::shared_ptr<DirectoryEntry> dir = root_entry_, next_dir;
+  int symlink_depth = 0;
 
   for (; !path.Empty(); dir = std::move(next_dir)) {
     std::shared_lock<SharedMutex> lock = dir->LockShared();
@@ -171,26 +177,18 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
     int symlink_depth = 0;
     while (1) {
       std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
-      if (*error_code != ErrorCode::kSuccess)
+      if (cwd == nullptr)
+        // |error_code| has already been set in GetDirectory().
         return nullptr;
 
       std::unique_lock<SharedMutex> lock = cwd->Lock();
 
       std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
       if (!entry) {
-        if (!path.BaseName()) {
-          *error_code = ErrorCode::kErrorNotFound;
+        entry = CreateEntry<FileEntry>(cwd.get(), *error_code, path.BaseName());
+        if (entry == nullptr)
+          // |error_code| has already been set in CreateEntry().
           return nullptr;
-        }
-
-        entry = AllocateEntry<FileEntry>(path.BaseName());
-        try {
-          cwd->AddEntry(entry.get(), accessor_.get(), allocator_.get());
-        }
-        catch (...) {
-          ReleaseEntry(entry);
-          throw;
-        }
       }
       else if (entry->type() == Entry::Type::kSymlink) {
         // It's a symlink.  Check the recursion depth...
@@ -232,7 +230,7 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
       return error_code;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
+    if (cwd == nullptr)
       return error_code;
 
     std::unique_lock<SharedMutex> lock = cwd->Lock();
@@ -240,17 +238,8 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
 
-    if (!path.BaseName())
-      return ErrorCode::kErrorNotFound;
-
-    std::unique_ptr<Entry> directory = AllocateEntry<DirectoryEntry>(path.BaseName());
-    try {
-      cwd->AddEntry(directory.get(), accessor_.get(), allocator_.get());
-    }
-    catch (...) {
-      ReleaseEntry(directory);
-      throw;
-    }
+    if (!CreateEntry<DirectoryEntry>(cwd.get(), error_code, path.BaseName()))
+      return error_code;
     return ErrorCode::kSuccess;
   }
   catch (...) {
@@ -268,10 +257,12 @@ uint64_t LinFS::ListDirectory(const char* path_cstr, uint64_t cookie,
       return 0;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path, *error_code);
-    if (*error_code != ErrorCode::kSuccess)
+    if (cwd == nullptr)
+      // |error_code| has already been set in GetDirectory().
       return 0;
 
     std::shared_lock<SharedMutex> lock = cwd->LockShared();
+    // |error_code| has already been set to ErrorCode::kSuccess in Path::Normalize().
     return cwd->GetNextEntryName(cookie, accessor_.get(), next_buf);
   }
   catch (...) {
@@ -294,7 +285,7 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
       return error_code;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
+    if (cwd == nullptr)
       return error_code;
 
     std::unique_lock<SharedMutex> lock = cwd->Lock();
@@ -302,18 +293,9 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
 
-    if (!path.BaseName())
-      return ErrorCode::kErrorNotFound;
-
-    std::unique_ptr<Entry> symlink = AllocateEntry<SymlinkEntry>(
-        path.BaseName(), target.Normalized(), allocator_.get());
-    try {
-      cwd->AddEntry(symlink.get(), accessor_.get(), allocator_.get());
-    }
-    catch (...) {
-      ReleaseEntry(symlink);
-      throw;
-    }
+    if (!CreateEntry<SymlinkEntry>(cwd.get(), error_code, path.BaseName(),
+                                   target.Normalized(), allocator_.get()))
+      return error_code;
     return ErrorCode::kSuccess;
   }
   catch (...) {
@@ -331,7 +313,7 @@ ErrorCode LinFS::Remove(const char* path_cstr) {
       return error_code;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), error_code);
-    if (error_code != ErrorCode::kSuccess)
+    if (cwd == nullptr)
       return error_code;
 
     std::unique_lock<SharedMutex> lock = cwd->Lock();
@@ -380,16 +362,18 @@ bool LinFS::IsType(const char* path_cstr, ErrorCode* error_code, Entry::Type typ
       return false;
 
     std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
-    if (*error_code != ErrorCode::kSuccess)
+    if (cwd == nullptr)
+      // |error_code| has already been set in GetDirectory().
       return false;
 
-    std::unique_lock<SharedMutex> lock = cwd->Lock();
+    std::shared_lock<SharedMutex> lock = cwd->LockShared();
 
     std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
     if (entry == nullptr) {
       *error_code = ErrorCode::kErrorNotFound;
       return false;
     }
+    // |error_code| has already been set to ErrorCode::kSuccess in Path::Normalize().
     return entry->type() == type;
   }
   catch (...) {
