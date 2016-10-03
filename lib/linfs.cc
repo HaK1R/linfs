@@ -60,6 +60,7 @@ void LinFS::ReleaseEntry(std::unique_ptr<Entry>& entry) noexcept {
 }
 
 std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_code) {
+  int symlink_depth = 0;
   std::shared_ptr<DirectoryEntry> dir = root_entry_, next_dir;
 
   for (; !path.Empty(); dir = std::move(next_dir)) {
@@ -72,6 +73,12 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
       return nullptr;
     }
     if (entry->type() == Entry::Type::kSymlink) {
+      // Ensure we are not in the loop.
+      if (++symlink_depth >= kSymlinkDepthMax) {
+        error_code = ErrorCode::kErrorSymlinkDepth;
+        return nullptr;
+      }
+
       // In despite of the fact that SymlinkEntry has its own lock mechanism
       // we always use the lock of the parent directory.
       Path target = entry->As<SymlinkEntry>()->GetTarget(accessor_.get());
@@ -161,6 +168,7 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
 
     // Unlike other entries, FileEntry should follow for the symlinks.  This
     // can be done by resolving symbolic links in the loop.
+    int symlink_depth = 0;
     while (1) {
       std::shared_ptr<DirectoryEntry> cwd = GetDirectory(path.DirectoryName(), *error_code);
       if (*error_code != ErrorCode::kSuccess)
@@ -180,7 +188,12 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
         }
       }
       else if (entry->type() == Entry::Type::kSymlink) {
-        // It's a symlink.  Start again.
+        // It's a symlink.  Check the recursion depth...
+        if (++symlink_depth >= kSymlinkDepthMax) {
+          *error_code = ErrorCode::kErrorSymlinkDepth;
+          return nullptr;
+        }
+        // and start again.
         path = entry->As<SymlinkEntry>()->GetTarget(accessor_.get());
         continue;
       }

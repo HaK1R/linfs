@@ -95,6 +95,28 @@ BOOST_FIXTURE_TEST_CASE(create_symlink_in_sub_dir, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("home/lnk", "target"));
 }
 
+BOOST_FIXTURE_TEST_CASE(create_self_recursive_symlink, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("lnk", "lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_not_self_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("target", "lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_symlink_if_basename_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "lnk"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == CreateSymlink("lnk", "target"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_symlink_if_dirname_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home", "home"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == CreateSymlink("home/lnk", "target"));
+}
+
 BOOST_FIXTURE_TEST_CASE(remove_symlink_if_target_doesnt_exist, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "target"));
 
@@ -161,6 +183,18 @@ BOOST_FIXTURE_TEST_CASE(remove_symlink_in_sub_dir, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home/lnk", "target"));
 
   BOOST_CHECK(ErrorCode::kSuccess == Remove("home/lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", "lnk"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == Remove("lnk"));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_symlink_if_dirname_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home", "home"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == Remove("home/lnk"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_symlink_if_already_removed, LoadedFSFixture) {

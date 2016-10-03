@@ -149,6 +149,18 @@ BOOST_FIXTURE_TEST_CASE(create_sub_dir_for_symlink_to_dir_in_sub_dirs, LoadedFSF
   BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("1/2/3/4/2.lnk/3/0"));
 }
 
+BOOST_FIXTURE_TEST_CASE(create_dir_if_basename_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home", "home"));
+
+  BOOST_CHECK(ErrorCode::kErrorExists == CreateDirectory("home"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_if_dirname_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home", "home"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == CreateDirectory("home/root"));
+}
+
 BOOST_FIXTURE_TEST_CASE(create_many_dirs_if_reuse_unused_sections, LoadedFSFixture) {
   for (int i = 0; i < kMany; ++i)
     BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory(to_s(i)));

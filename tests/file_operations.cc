@@ -128,6 +128,26 @@ BOOST_FIXTURE_TEST_CASE(open_file_via_symlink_target_with_long_name_if_file_exis
   BOOST_CHECK(ErrorCode::kErrorExists == OpenFile("lnk", file, true));
 }
 
+BOOST_FIXTURE_TEST_CASE(open_file_if_basename_is_self_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink(".profile", ".profile"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == OpenFile(".profile", file));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_if_basename_is_not_self_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("lnk", ".profile"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink(".profile", "lnk"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == OpenFile(".profile", file));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_if_dirname_is_recursive_symlink, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateSymlink("home/root", "home/root"));
+
+  BOOST_CHECK(ErrorCode::kErrorSymlinkDepth == OpenFile("home/root/.profile", file));
+}
+
 BOOST_FIXTURE_TEST_CASE(remove_one_file, LoadedFSFixture) {
   BOOST_REQUIRE(ErrorCode::kSuccess == CreateFile(".profile"));
 

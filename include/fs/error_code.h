@@ -31,6 +31,9 @@ enum class ErrorCode : uint8_t {
 
   // File errors:
   kErrorCursorTooBig,       // error: cursor exceeds the actual file size
+
+  // Symlink errors:
+  kErrorSymlinkDepth,       // error: path has too many symlinks
 };
 
 }  // namespace fs
