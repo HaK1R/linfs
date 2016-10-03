@@ -9,29 +9,25 @@ namespace fs {
 namespace linfs {
 
 Path Path::Normalize(const char* path_cstr, ErrorCode& error_code) {
-  std::string normalized;
-  normalized.reserve(kPathMax + 1);
+  // Skip the root symbol.
+  if (*path_cstr == '/')
+    ++path_cstr;
 
-  for (const char *pch = path_cstr, *name_start = path_cstr; *pch != '\0'; ++pch) {
-    switch (*pch) {
-      case '/':
-        name_start = pch + 1;
-        if (!normalized.empty() && normalized.back() != '/')
-          normalized.push_back(*pch);
-        break;
-      default:
-        if (uintptr_t(pch) - uintptr_t(name_start) >= kNameMax) {
-          error_code = ErrorCode::kErrorNameTooLong;
-          return Path();
-        }
-        normalized.push_back(*pch);
-        break;
-    }
-  }
-
+  std::string normalized(path_cstr);
   if (normalized.size() > kPathMax) {
     error_code = ErrorCode::kErrorNameTooLong;
     return Path();
+  }
+
+  size_t name_start = 0;
+  while (name_start < normalized.size()) {
+    size_t name_end = normalized.find('/', name_start);
+    name_end = name_end != std::string::npos ? name_end : normalized.size();
+    if (name_end - name_start > kNameMax) {
+      error_code = ErrorCode::kErrorNameTooLong;
+      return Path();
+    }
+    name_start = name_end + 1;
   }
 
   error_code = ErrorCode::kSuccess;

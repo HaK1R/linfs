@@ -16,8 +16,11 @@ class Path {
     // Still passing by reference? Pass by value! Just trust copy elision!
     Name(std::string s) : std::string(std::move(s)) {}
     operator const char*() const { return c_str(); }
+    operator bool() const { return !empty(); }
   };
 
+  // Normalize the path to a canonical representation.
+  // For now "/path/to/smth" and "path/to/smth" are the same.
   static Path Normalize(const char* path_cstr, ErrorCode& error_code);
 
   bool Empty() const { return data_.empty(); }

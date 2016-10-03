@@ -61,6 +61,14 @@ BOOST_FIXTURE_TEST_CASE(open_many_files_in_sub_dir, LoadedFSFixture) {
     BOOST_CHECK(ErrorCode::kSuccess == OpenFile("home/" + to_s(i), file));
 }
 
+BOOST_FIXTURE_TEST_CASE(open_file_with_empty_relative_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == OpenFile("", file));
+}
+
+BOOST_FIXTURE_TEST_CASE(open_file_with_empty_absolute_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == OpenFile("/", file));
+}
+
 BOOST_FIXTURE_TEST_CASE(open_file_with_complex_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == OpenFile("a-Z0+9@#$%^&*(){}[]|_=:;.,'\"", file));
 }

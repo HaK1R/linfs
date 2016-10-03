@@ -31,6 +31,14 @@ BOOST_FIXTURE_TEST_CASE(create_symlink_to_dir_which_exists, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("lnk", "home"));
 }
 
+BOOST_FIXTURE_TEST_CASE(create_symlink_to_target_with_empty_relative_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("lnk", ""));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_symlink_to_target_with_empty_absolute_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("lnk", "/"));
+}
+
 BOOST_FIXTURE_TEST_CASE(create_symlink_to_target_with_complex_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink("lnk", "a-Z0+9@#$%^&*(){}[]|_=:;.,'\""));
 }
@@ -51,6 +59,14 @@ BOOST_FIXTURE_TEST_CASE(create_many_symlinks_to_one_target, LoadedFSFixture) {
 BOOST_FIXTURE_TEST_CASE(create_many_symlinks_to_many_targets, LoadedFSFixture) {
   for (int i = 0; i < kMany; ++i)
     BOOST_CHECK(ErrorCode::kSuccess == CreateSymlink(std::to_string(i), "target" + std::to_string(i)));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_symlink_with_empty_relative_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == CreateSymlink("", "target"));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_symlink_with_empty_absolute_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == CreateSymlink("/", "target"));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_symlink_with_complex_name, LoadedFSFixture) {

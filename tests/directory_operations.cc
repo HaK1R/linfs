@@ -45,6 +45,14 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_many_dirs, LoadedFSFixture) {
     BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("home/" + to_s(i)));
 }
 
+BOOST_FIXTURE_TEST_CASE(create_dir_with_empty_relative_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == CreateDirectory(""));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_with_empty_absolute_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == CreateDirectory("/"));
+}
+
 BOOST_FIXTURE_TEST_CASE(create_dir_with_complex_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("Hi Tom! These characters are allowed: "
                                                      "a-Z0+9@#$%^&*(){}[]|_=:;.,'\""));
@@ -52,6 +60,12 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_complex_name, LoadedFSFixture) {
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_long_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory(std::string(kNameMax, 'a')));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_with_dir_with_long_name, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+
+  BOOST_CHECK(ErrorCode::kSuccess == CreateDirectory("home/" + std::string(kNameMax, 'a')));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_long_path, LoadedFSFixture) {
@@ -71,6 +85,13 @@ BOOST_FIXTURE_TEST_CASE(create_dir_with_illegal_name, LoadedFSFixture) {
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_name, LoadedFSFixture) {
   BOOST_CHECK(ErrorCode::kErrorNameTooLong == CreateDirectory(std::string(kNameMax + 1, 'a')));
+}
+
+BOOST_FIXTURE_TEST_CASE(create_dir_with_dir_with_too_long_name, LoadedFSFixture) {
+  BOOST_REQUIRE(ErrorCode::kSuccess == CreateDirectory("home"));
+
+  BOOST_CHECK(ErrorCode::kErrorNameTooLong ==
+              CreateDirectory("home/" + std::string(kNameMax + 1, 'a')));
 }
 
 BOOST_FIXTURE_TEST_CASE(create_dir_with_too_long_path, LoadedFSFixture) {
@@ -201,6 +222,14 @@ BOOST_FIXTURE_TEST_CASE(remove_many_dirs_in_dir, LoadedFSFixture) {
 
   for (int i = kMany - 1; i >= 0; --i)
     BOOST_CHECK(ErrorCode::kSuccess == Remove("home/" + to_s(i)));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_dir_with_empty_relative_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove(""));
+}
+
+BOOST_FIXTURE_TEST_CASE(remove_dir_with_empty_absolute_name, LoadedFSFixture) {
+  BOOST_CHECK(ErrorCode::kErrorNotFound == Remove("/"));
 }
 
 BOOST_FIXTURE_TEST_CASE(remove_dir_with_dir, LoadedFSFixture) {

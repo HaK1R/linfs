@@ -178,6 +178,11 @@ FileInterface* LinFS::OpenFile(const char* path_cstr, bool creat_excl, ErrorCode
 
       std::unique_ptr<Entry> entry = cwd->FindEntryByName(path.BaseName(), accessor_.get());
       if (!entry) {
+        if (!path.BaseName()) {
+          *error_code = ErrorCode::kErrorNotFound;
+          return nullptr;
+        }
+
         entry = AllocateEntry<FileEntry>(path.BaseName());
         try {
           cwd->AddEntry(entry.get(), accessor_.get(), allocator_.get());
@@ -234,6 +239,9 @@ ErrorCode LinFS::CreateDirectory(const char* path_cstr) {
 
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
+
+    if (!path.BaseName())
+      return ErrorCode::kErrorNotFound;
 
     std::unique_ptr<Entry> directory = AllocateEntry<DirectoryEntry>(path.BaseName());
     try {
@@ -293,6 +301,9 @@ ErrorCode LinFS::CreateSymlink(const char* path_cstr, const char* target_cstr) {
 
     if (cwd->FindEntryByName(path.BaseName(), accessor_.get()))
       return ErrorCode::kErrorExists;
+
+    if (!path.BaseName())
+      return ErrorCode::kErrorNotFound;
 
     std::unique_ptr<Entry> symlink = AllocateEntry<SymlinkEntry>(
         path.BaseName(), target.Normalized(), allocator_.get());
