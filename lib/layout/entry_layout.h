@@ -20,7 +20,7 @@ class EntryLayout {
     uint8_t type;                // type of this section
     uint8_t reserved0[7] = {0};  // say hello ARM64
   });
-  static_assert(sizeof(_Header::type) == sizeof(Entry::Type),
+  static_assert(SIZEOF_MEMBER(_Header, type) == sizeof(Entry::Type),
                 "EntryLayout::_Header requires Entry::Type be of size uint8_t");
 
  public:

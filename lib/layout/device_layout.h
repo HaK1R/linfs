@@ -34,7 +34,8 @@ class DeviceLayout {
         sizeof(Header) + offsetof(Body, root.entry);
     uint64_t total_clusters = 1;  // total number of allocated clusters
   });
-  static_assert(sizeof(Header::cluster_size_log2) == sizeof(FilesystemInterface::ClusterSize),
+  static_assert(SIZEOF_MEMBER(Header, cluster_size_log2) ==
+                    sizeof(FilesystemInterface::ClusterSize),
                 "DeviceLayout::Header requires ClusterSize be of size uint8_t");
   STATIC_ASSERT_STANDARD_LAYOUT_AND_TRIVIALLY_COPYABLE(Header);
 

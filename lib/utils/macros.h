@@ -6,6 +6,7 @@ namespace fs {
 
 namespace linfs {
 
+// Shortcuts for static_assert(s).
 #define STATIC_ASSERT_BASE_OF(Base, Derived) \
   static_assert(std::is_base_of<Base, Derived>::value, \
                 #Base " isn't a base type of " #Derived)
@@ -22,7 +23,11 @@ namespace linfs {
   STATIC_ASSERT_STANDARD_LAYOUT(Type); \
   STATIC_ASSERT_TRIVIALLY_COPYABLE(Type)
 
+// Get the size of Type::member.
+#define SIZEOF_MEMBER(Type, member) \
+    sizeof(((Type*)0)->member)
 
+// Define the compiler-specific syntax for packed types.
 #ifdef _MSC_VER  // For Visual C++ compiler
 #define PACK(...) \
   __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
