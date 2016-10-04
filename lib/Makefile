@@ -23,7 +23,10 @@ SRCS += $(addprefix utils/,exception_handler.cc format_exception.cc path.cc read
 
 OBJS = $(SRCS:.cc=.o)
 
-LIBNAME = liblinfs.so
+# Define LIBEXT.  Most UNIX platforms use .so extension but Windows uses .dll.
+LIBEXT = .so
+
+LIBNAME = liblinfs$(LIBEXT)
 
 .PHONY: build clean depend
 
