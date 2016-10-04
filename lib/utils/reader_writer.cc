@@ -35,10 +35,16 @@ size_t ReaderWriter::Read(uint64_t offset, char* buf, size_t buf_size) {
   device_.seekg(offset);
   if (device_.good())
     device_.read(buf, buf_size);
-  if (device_.eof())
+
+  if (device_.eof()) {
+    device_.clear();
     throw FormatException();  // no data to read
-  if (!device_.good())
+  }
+  if (!device_.good()) {
+    device_.clear();
     throw std::ios_base::failure("read", std::make_error_code(std::errc::io_error));
+  }
+
   return buf_size;
 }
 
@@ -46,9 +52,14 @@ size_t ReaderWriter::Write(const char* buf, size_t buf_size, uint64_t offset) {
   std::lock_guard<std::mutex> lock(device_mutex_);
 
   device_.seekp(offset);
-  device_.write(buf, buf_size);
-  if (!device_.good())
+  if (device_.good())
+    device_.write(buf, buf_size);
+
+  if (!device_.good()) {
+    device_.clear();
     throw std::ios_base::failure("write", std::make_error_code(std::errc::io_error));
+  }
+
   return buf_size;
 }
 
