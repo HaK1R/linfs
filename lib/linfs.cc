@@ -99,6 +99,10 @@ std::shared_ptr<DirectoryEntry> LinFS::GetDirectory(Path path, ErrorCode& error_
       return nullptr;
     }
 
+    // Unspoken rule: |GetSharedEntry| and |EntryIsShared| must always be called
+    // in the locked directory.  Otherwise it leads to a race condition:
+    // |Remove| has checked that no one uses the entry and releases it but at
+    // this time someone is almost ready to make it shared.
     next_dir = static_pointer_cast<DirectoryEntry>(cache_.GetSharedEntry(std::move(entry)));
     path = path.ExceptFirstName();
   }
@@ -322,6 +326,8 @@ ErrorCode LinFS::Remove(const char* path_cstr) {
     if (entry == nullptr)
       return ErrorCode::kErrorNotFound;
     if (cache_.EntryIsShared(entry.get()))
+      // All used entries are shared and stored in the cache.  An entry can be
+      // removed only if it's not shared.
       return ErrorCode::kErrorBusy;
     if (entry->type() == Entry::Type::kDirectory) {
       // We can use |HasEntries| without locking the entry's lock |entry->Lock()|
